@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Analyze</string>
+    <string name="switch__keepSync">Keep synced</string>
+    <string name="btn_sync">Sync now</string>
+</resources>

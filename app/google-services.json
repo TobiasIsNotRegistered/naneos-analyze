@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "870856191016",
+    "firebase_url": "https://analyze-naneos.firebaseio.com",
+    "project_id": "analyze-naneos",
+    "storage_bucket": "analyze-naneos.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870856191016:android:01fb18da00ad7661",
+        "android_client_info": {
+          "package_name": "naneos.analyze"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "870856191016-fiagp5pkv8b7jfupp1qmbhe27264n2p1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "naneos.analyze",
+            "certificate_hash": "89b6741d57760cf8cbc13001834de639432b4650"
+          }
+        },
+        {
+          "client_id": "870856191016-pct8ln6rok0sp603csp71cfnstcdtoft.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDunJXXSaMFOateQRABxP5hXvUDhezz2KI"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870856191016-pct8ln6rok0sp603csp71cfnstcdtoft.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
