@@ -13,7 +13,6 @@ import android.widget.Switch;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
@@ -28,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private List<DataObject> dummyData;
     private ListView listView;
     private Button btn_syncOnce;
+    private Button btn_flush;
     private Switch switch_keepSynced;
     private ArrayAdapter<DataObject> adapter;
     private Random rand;
@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
         rand = new Random();
         listView = (ListView) findViewById(R.id.lv_main);
         btn_syncOnce = (Button) findViewById(R.id.btn_syncOnce);
+        btn_flush = (Button) findViewById(R.id.btn_flush);
         switch_keepSynced =(Switch) findViewById(R.id.switch_keepSynced);
         dummyData = new ArrayList<>();
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, dummyData);
@@ -58,11 +59,16 @@ public class MainActivity extends AppCompatActivity {
         btn_syncOnce.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                syncDataOnce();
+                addDataToFirestoreOnce();
             }
         });
-
-
+        btn_flush.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dummyData.clear();
+                adapter.notifyDataSetChanged();
+            }
+        });
     }
 
     private void addData(int i){
@@ -72,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
             listView.smoothScrollToPosition(adapter.getCount() -1);
 
             if(switch_keepSynced.isChecked()){
-                addDataContinously(obj);
+                addDataToFirestoreContinously(obj);
             }
     }
 
@@ -98,38 +104,38 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
-    private void syncDataOnce() {
+    private void addDataToFirestoreOnce() {
         for (int i = 0; i < dummyData.size(); i++) {
 
             db.collection("DummyData").document(dummyData.get(i).date.toString()).set(dummyData.get(i))
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            Log.d("syncDataOnce", "DocumentSnapshot written with ID: " + "?");
+                            Log.d("addDataToFirestoreOnce", "DocumentSnapshot written with ID: " + "?");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            Log.w("syncDataOnce", "Error adding document", e);
+                            Log.w("addDataToFirestoreOnce", "Error adding document", e);
                         }
                     });
         }
     }
 
 
-    private void addDataContinously(DataObject obj) {
+    private void addDataToFirestoreContinously(DataObject obj) {
             db.collection("DummyData").document(obj.date.toString()).set(obj)
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            Log.d("syncDataOnce", "DocumentSnapshot written with ID: " + "?");
+                            Log.d("addDataToFirestoreOnce", "DocumentSnapshot written with ID: " + "?");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            Log.w("syncDataOnce", "Error adding document", e);
+                            Log.w("addDataToFirestoreOnce", "Error adding document", e);
                         }
                     });
     }
