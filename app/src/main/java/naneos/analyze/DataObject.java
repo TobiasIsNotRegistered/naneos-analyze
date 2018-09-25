@@ -3,16 +3,16 @@ package naneos.analyze;
 import java.text.DateFormat;
 import java.util.Date;
 
-public class dataObject {
+public class DataObject {
     public int ID;
     public Date date;
     public int content;
 
-    public dataObject(){
+    public DataObject(){
 
     }
 
-    public dataObject(int ID, Date date, int content){
+    public DataObject(int ID, Date date, int content){
         this.ID = ID;
         this.date = date;
         this.content = content;

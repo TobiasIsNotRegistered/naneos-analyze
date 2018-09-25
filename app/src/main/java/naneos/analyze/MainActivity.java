@@ -1,6 +1,6 @@
 package naneos.analyze;
 
-import android.os.SystemClock;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -9,15 +9,13 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Switch;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import org.json.JSONObject;
-
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -27,14 +25,19 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
-    private List<dataObject> dummyData;
+    private List<DataObject> dummyData;
     private ListView listView;
     private Button btn_syncOnce;
-    private ArrayAdapter<dataObject> adapter;
+    private Switch switch_keepSynced;
+    private ArrayAdapter<DataObject> adapter;
     private Random rand;
     private FirebaseFirestore db;
     private Date currentTime;
 
+    private Handler h = new Handler();
+    private int delay = 1000; //1 second=1000 milisecond, 15*1000=15seconds
+    private Runnable runnable;
+    private int index;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,17 +48,12 @@ public class MainActivity extends AppCompatActivity {
         rand = new Random();
         listView = (ListView) findViewById(R.id.lv_main);
         btn_syncOnce = (Button) findViewById(R.id.btn_syncOnce);
+        switch_keepSynced =(Switch) findViewById(R.id.switch_keepSynced);
         dummyData = new ArrayList<>();
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, dummyData);
         listView.setAdapter(adapter);
-        currentTime = Calendar.getInstance().getTime();
 
-        for (int i = 0; i < 1000; i++) {
-            dataObject obj = new dataObject(i, currentTime, rand.nextInt(1000000));
-            dummyData.add(obj);
-        }
-
-        adapter.notifyDataSetChanged();
+        index = 0;
 
         btn_syncOnce.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -63,21 +61,51 @@ public class MainActivity extends AppCompatActivity {
                 syncDataOnce();
             }
         });
+
+
+    }
+
+    private void addData(int i){
+            DataObject obj = new DataObject(i, currentTime, rand.nextInt(1000000));
+            dummyData.add(obj);
+            adapter.notifyDataSetChanged();
+            listView.smoothScrollToPosition(adapter.getCount() -1);
+
+            if(switch_keepSynced.isChecked()){
+                addDataContinously(obj);
+            }
     }
 
     @Override
     protected void onResume() {
+
+        h.postDelayed( runnable = new Runnable() {
+            public void run() {
+                //do something
+                currentTime = Calendar.getInstance().getTime();
+                addData(index++);
+                h.postDelayed(runnable, delay);
+            }
+        }, delay);
+
         super.onResume();
 
     }
 
+    @Override
+    protected void onPause() {
+        h.removeCallbacks(runnable); //stop handler when activity not visible
+        super.onPause();
+    }
+
     private void syncDataOnce() {
         for (int i = 0; i < dummyData.size(); i++) {
-            db.collection("DummyData").add(dummyData.get(i))
-                    .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+
+            db.collection("DummyData").document(dummyData.get(i).date.toString()).set(dummyData.get(i))
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
-                        public void onSuccess(DocumentReference documentReference) {
-                            Log.d("syncDataOnce", "DocumentSnapshot written with ID: " + documentReference.getId());
+                        public void onSuccess(Void aVoid) {
+                            Log.d("syncDataOnce", "DocumentSnapshot written with ID: " + "?");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -87,6 +115,23 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
         }
+    }
+
+
+    private void addDataContinously(DataObject obj) {
+            db.collection("DummyData").document(obj.date.toString()).set(obj)
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Log.d("syncDataOnce", "DocumentSnapshot written with ID: " + "?");
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.w("syncDataOnce", "Error adding document", e);
+                        }
+                    });
     }
 
 
