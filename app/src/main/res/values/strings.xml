@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Naneos</string>
+    <string name="action_settings">Settings</string>
+    <string name="menu_scan">Scan</string>
+    <string name="menu_stop">Disconnect</string>
+    <string name="device_search">Partector Scan…</string>
+    <string name="unknown_device">Unknown Device</string>
+    <string name="no_device">no device connected…</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="dialog_close_application">Exit</string>
+    <string name="dialog_close_application_message">Close Application?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="unknown_service">unknown service</string>
+    <string name="unknown_characteristic">unknown characteristic</string>
+    <string name="unknown_uuid">Unknown UUID</string>
+    <string name="no_data">--.--</string>
+    <string name="no_type">noType</string>
+    <string name="no_unit">noUnit</string>
+    <string name="no_data_time">--</string>
+    <string name="type_ldsa">LDSA</string>
+    <string name="type_temperature">Temp</string>
+    <string name="type_rh">Humidity</string>
+    <string name="type_ubatt">Battery</string>
+    <string name="type_number">Number</string>
+    <string name="type_serialnumber">Serial</string>
+    <string name="type_diameter">Diameter</string>
+    <string name="unit_ldsa">μm²/cm³</string>
+    <string name="unit_temperature">℃</string>
+    <string name="unit_rh">%</string>
+    <string name="unit_ubatt">V</string>
+    <string name="unit_diameter">nm</string>
+    <string name="unit_number">#</string>
+    <string name="arrow_left">\u21E6</string>
+    <string name="arrow_right">\u21E8</string>
+    <string name="no_error">noError</string>
+    <string name="description_earth_symbol">Display Data in Google Earth</string>
+
+</resources>

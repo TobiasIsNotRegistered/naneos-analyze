@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:gradientRadius="360"
+                android:startColor="#ffdc392a"
+                android:endColor="#ffbb110b"
+                android:angle="270"
+                android:type="linear"/>
+        </shape>
+    </item>
+
+    <item>
+        <bitmap android:src="@drawable/click_layer">
+        </bitmap>
+
+    </item>
+
+</layer-list>
