@@ -20,7 +20,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.Volley;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -29,15 +28,13 @@ import java.util.TimerTask;
 public class NaneosActivity extends ActionBarActivity{
 
     private Context mainContext = this;
-
     private static final int REQUEST_ENABLE_BT = 1;
 
-    private BluetoothAdapter mBluetoothAdapter;
-
     // new BLE interface
+    private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mLEScanner;
     private ScanSettings settings;
-    private List<ScanFilter> filters;  // todo: unused for now, either remove or use filters to display only certain devices (better performance?)
+    private List<ScanFilter> filters;
 
     private DeviceFragment mDeviceFragment;
 
@@ -62,6 +59,11 @@ public class NaneosActivity extends ActionBarActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+
+        System.out.println("********************************");
+        System.out.println("   onCreate    ");
+        System.out.println("********************************");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_naneos);
 
@@ -78,13 +80,17 @@ public class NaneosActivity extends ActionBarActivity{
         // TODO: this timer should be created in onResume, and destroyed in onPause!?!?
         // this timer should not run as daemon
 
-        System.out.println("********************************");
-        System.out.println("   onCreate    ");
-        System.out.println("********************************");
-
         // create a timer which will fire once every 10 minutes and which will turn the scan off and on again
         // I do this because android will terminate the BLE scanning by itself after 30 minutes, so I need to
         // prevent it from doing this...
+        ScanFilter scanFilter = new ScanFilter.Builder().setDeviceName("Partector").build();
+        filters = new ArrayList<>();
+        filters.add(scanFilter);
+        final ScanSettings.Builder builderScanSettings = new ScanSettings.Builder();
+        builderScanSettings.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
+        builderScanSettings.setReportDelay(0);
+
+
         System.out.println("creating a new timer");
         Timer t = new Timer();
         t.scheduleAtFixedRate(new TimerTask() {
@@ -92,7 +98,8 @@ public class NaneosActivity extends ActionBarActivity{
                                   public void run() {  // called repetitively, scans for devices
                                       Log.e("Restart", "Restart scanning");
                                       mLEScanner.stopScan(mScanCallback);
-                                      mLEScanner.startScan(mScanCallback);
+                                      //mLEScanner.startScan(mScanCallback);
+                                      mLEScanner.startScan(filters, builderScanSettings.build(), mScanCallback);
                                   }
                               },
                 // set how long to wait before starting the Timer Task
@@ -100,14 +107,9 @@ public class NaneosActivity extends ActionBarActivity{
                 // set how often to call (in ms)
                 600000);  // do this all 10 minutes
 
-        // I have API version 19 on the huawei phones
+        //  to detect API version programmatically:
         //  int i = Build.VERSION.SDK_INT;
         // System.out.println("API version is " + i);
-
-        // TODO
-        // with API level 21, startLeScan is deprecated, and instead Startscan should be used! (lollipop, 5.0)
-
-         queue = Volley.newRequestQueue(this);
     }
 
     @Override
@@ -149,11 +151,19 @@ public class NaneosActivity extends ActionBarActivity{
             ((Activity) mainContext).startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
 
-       mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
-       settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-       filters = new ArrayList<>();
-        // todo: how do I use these settings + filters??
-        mLEScanner.startScan(mScanCallback);
+        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        //settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
+        ScanFilter scanFilter = new ScanFilter.Builder().setDeviceName("Partector").build();
+        final ScanSettings.Builder builderScanSettings = new ScanSettings.Builder();
+        builderScanSettings.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
+        builderScanSettings.setReportDelay(0);
+        //filters = new ArrayList<>();
+        //filters.add(scanFilter);
+
+        System.out.println("----------------------------->naneosActivity startscan");
+        if(mLEScanner != null)
+            //mLEScanner.startScan(mScanCallback);
+            mLEScanner.startScan(filters, builderScanSettings.build(), mScanCallback);
     }
 
     /**
@@ -281,13 +291,13 @@ public class NaneosActivity extends ActionBarActivity{
                     //if(device.getAddress().contains("00:07:80")) {
 
                     // name appears to be
-                    Log.e("partector name", device.getName());
                     if(device.getName() != null && (device.getName().contains("Partector") || device.getName().contains("P2"))) {
                         //System.out.println("device name is" + device.getName());  // this is "P2" which we should search instead of address!
                         //System.out.println(device.toString());  // this is mac address which we could store to connect to multiple P2s
 
                         // if(device.getName().contains("Partector")) {     // this would be much nicer, but doesn't work because it first needs a scan result = a connection to the P2
                         //System.out.println("found a P2....");
+                        Log.e("partector name", device.getName());
 
                         String msg = "ascii: ";
 

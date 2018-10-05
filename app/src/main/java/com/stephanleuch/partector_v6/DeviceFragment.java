@@ -57,6 +57,7 @@ public class DeviceFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+        System.out.println("------------> device fragment oncreate");
 
         locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
@@ -74,6 +75,7 @@ public class DeviceFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
     {
+        System.out.println("------------> device fragment oncreateview");
         // Inflate the layout for this fragment
         view =  inflater.inflate(R.layout.fragment_device, container, false);
 
@@ -259,6 +261,7 @@ public class DeviceFragment extends Fragment {
     public void displayData(String data) {
         // data is being sent here from NaneosActivity.java, here we just do the display
         // NaneosActivity has already checked that String data only contains digits
+        System.out.println("------------> device fragment displaydata");
         FrameLayout timeDisplay = (FrameLayout) view.findViewById(R.id.time_display);
         setTime(timeDisplay);
         String str;
