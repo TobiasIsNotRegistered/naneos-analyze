@@ -3,4 +3,9 @@
     <string name="switch__keepSync">Keep synced</string>
     <string name="btn_sync">Sync all</string>
     <string name="flush">Flush</string>
+
+    <string name="icon_import">Import</string>
+    <string name="icon_gallery">Gallery</string>
+    <string name="icon_slideshow">Slideshow</string>
+    <string name="icon_tools">Tools</string>
 </resources>

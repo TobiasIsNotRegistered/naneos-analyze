@@ -2,9 +2,15 @@ package naneos.analyze;
 
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.design.widget.NavigationView;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -37,12 +43,17 @@ public class MainActivity extends AppCompatActivity {
     private Handler h = new Handler();
     private int delay = 1000; //1 second=1000 milisecond, 15*1000=15seconds
     private Runnable runnable;
-    private int index;
+    private int indexOfDataObject;
+
+    private DrawerLayout mDrawerLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+        /* ******************* DB ********************* */
 
         db = FirebaseFirestore.getInstance();
         rand = new Random();
@@ -54,12 +65,12 @@ public class MainActivity extends AppCompatActivity {
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, dummyData);
         listView.setAdapter(adapter);
 
-        index = 0;
+        indexOfDataObject = 0;
 
         btn_syncOnce.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                addDataToFirestoreOnce();
+                setAllDataInFirestoreOnce();
             }
         });
         btn_flush.setOnClickListener(new View.OnClickListener() {
@@ -69,7 +80,45 @@ public class MainActivity extends AppCompatActivity {
                 adapter.notifyDataSetChanged();
             }
         });
+
+        /* ******************* DRAWER ********************* */
+        mDrawerLayout = findViewById(R.id.drawer_layout);
+
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(
+                new NavigationView.OnNavigationItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(MenuItem menuItem) {
+                        // set item as selected to persist highlight
+                        menuItem.setChecked(true);
+                        // close drawer when item is tapped
+                        mDrawerLayout.closeDrawers();
+
+                        // Add code here to update the UI based on the item selected
+                        // For example, swap UI fragments here
+
+                        return true;
+                    }
+                });
+
+        /* ******************* TOOLBAR ********************* */
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        ActionBar actionbar = getSupportActionBar();
+        actionbar.setDisplayHomeAsUpEnabled(true);
+        actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
     }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                mDrawerLayout.openDrawer(GravityCompat.START);
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
 
     private void addData(int i){
             DataObject obj = new DataObject(i, currentTime, rand.nextInt(1000000));
@@ -78,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
             listView.smoothScrollToPosition(adapter.getCount() -1);
 
             if(switch_keepSynced.isChecked()){
-                addDataToFirestoreContinously(obj);
+                setNewDataInFirestoreContinuously(obj);
             }
     }
 
@@ -89,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 //do something
                 currentTime = Calendar.getInstance().getTime();
-                addData(index++);
+                addData(indexOfDataObject++);
                 h.postDelayed(runnable, delay);
             }
         }, delay);
@@ -104,41 +153,44 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
-    private void addDataToFirestoreOnce() {
+    private void setAllDataInFirestoreOnce() {
         for (int i = 0; i < dummyData.size(); i++) {
 
             db.collection("DummyData").document(dummyData.get(i).date.toString()).set(dummyData.get(i))
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            Log.d("addDataToFirestoreOnce", "DocumentSnapshot written with ID: " + "?");
+                            Log.d("Firestore", "DocumentSnapshot written with ID: " + "?");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            Log.w("addDataToFirestoreOnce", "Error adding document", e);
+                            Log.w("Firestore", "Error adding document", e);
                         }
                     });
         }
     }
 
 
-    private void addDataToFirestoreContinously(DataObject obj) {
+    private void setNewDataInFirestoreContinuously(DataObject obj) {
             db.collection("DummyData").document(obj.date.toString()).set(obj)
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            Log.d("addDataToFirestoreOnce", "DocumentSnapshot written with ID: " + "?");
+                            Log.d("Firestore", "DocumentSnapshot written with ID: " + "?");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            Log.w("addDataToFirestoreOnce", "Error adding document", e);
+                            Log.w("Firestore", "Error adding document", e);
                         }
                     });
     }
+
+
+
 
 
 }
