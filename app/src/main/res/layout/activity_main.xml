@@ -23,6 +23,12 @@
             android:theme="@style/ThemeOverlay.AppCompat.ActionBar" />
 
 
+        <TextView
+            android:id="@+id/textView_amountOfDataObjects"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/amountOfDataObjects" />
+
         <ListView
             android:id="@+id/lv_main"
             android:layout_width="match_parent"
@@ -35,6 +41,12 @@
             android:layout_weight="0.1"
             android:gravity="center_horizontal"
             android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_scan"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/scan" />
 
             <Button
                 android:id="@+id/btn_flush"
