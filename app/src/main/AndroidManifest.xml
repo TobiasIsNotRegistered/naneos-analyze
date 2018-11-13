@@ -28,9 +28,6 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ReceiveDataFromBleActivity">
-
-        </activity>
     </application>
 
 </manifest>

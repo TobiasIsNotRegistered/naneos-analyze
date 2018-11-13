@@ -1,34 +1,39 @@
 package naneos.analyze;
 
+import java.io.Serializable;
 import java.text.DateFormat;
 import java.util.Date;
 
-public class DataObject {
+/**
+    This class represents the Data received by the Partector.
+    For every result which comes from the Partector, the class "NaneosScanCallback"
+    instantiates a new NaneosDataObject.
+ **/
+public class NaneosDataObject implements Serializable {
+
+    //data
     private int ID;
     private Date date;
-  private float temp;
-  private float humidity;
-  private float batteryVoltage;
-  private float error;
-  private float diameter;
-  private float numberC;
-  private float LDSA;
+    private float temp;
+    private float humidity;
+    private float batteryVoltage;
+    private float error;
+    private float diameter;
+    private float numberC;
+    private float LDSA;
 
-    public DataObject(){
+    //empty constructor
+    public NaneosDataObject() {
 
     }
 
-    public DataObject(int ID, Date date, int content){
-        this.ID = ID;
-        this.date = date;
-    }
-
-    @Override
-    public String toString(){
+     @Override
+    public String toString() {
         return ID + ": " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(date)
-                + "\n" + "LDSA: " + LDSA + "  Temp: " + temp;
+                + "\n" + "LDSA: " + LDSA + "  Temp: " + temp + "NumberC: " + numberC + "diameter: " + diameter;
     }
 
+    /** GETTER & SETTER **/
     public int getID() {
         return ID;
     }
