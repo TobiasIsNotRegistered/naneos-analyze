@@ -17,19 +17,24 @@ import java.util.Calendar;
  */
 public class NaneosScanCallback extends ScanCallback {
 
-    Activity mainActivity;
-
-    float LDSA = 0;
-    float RH = 0;
-    float Temperature = 0;
-    float BatteryVoltage = 0;
-    int errorcode = 0;
-    int number = 0;
-    int diameter = 0;
-    int currentDataIndex = 0;
+    //Data
+    private float LDSA;
+    private float RH;
+    private float Temperature;
+    private float BatteryVoltage;
+    private int errorcode;
+    private int number;
+    private int diameter;
+    private int currentDataIndex;
+    private int serial;
 
     private String lastreceived = "";    // lastreceived will hold the last valid advertising data received
     private String buffer = "";
+
+    //Meta
+    private Runnable deserialization;
+    private Thread receiveAndDeserializeBleData;
+    private Activity mainActivity;
 
 
     public NaneosScanCallback(Activity activity) {
@@ -45,7 +50,7 @@ public class NaneosScanCallback extends ScanCallback {
 
         //Log.d("NaneosScanCallback", "onResult invoked!");
 
-        Thread receiveAndDeserializeBleData = new Thread(new Runnable() {
+        receiveAndDeserializeBleData = new Thread(new Runnable() {
             @Override
             public void run() {
 
@@ -109,7 +114,6 @@ public class NaneosScanCallback extends ScanCallback {
                                         case 'B':
                                             if (parts[i].endsWith("b")) {
                                                 BatteryVoltage = Float.valueOf(parts[i].substring(1, parts[i].length() - 1));
-
                                                 newData.setBatteryVoltage(BatteryVoltage);
                                             }
                                             break;
@@ -117,6 +121,11 @@ public class NaneosScanCallback extends ScanCallback {
                                             errorcode = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
 
                                             newData.setError(errorcode);
+                                            break;
+                                        case 'N':
+                                            serial = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
+
+                                            newData.setSerial(serial);
                                             break;
                                         case 'D':
                                             diameter = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
@@ -153,7 +162,7 @@ public class NaneosScanCallback extends ScanCallback {
                 }
             }
         });
+
         receiveAndDeserializeBleData.start();
     }
-
 }

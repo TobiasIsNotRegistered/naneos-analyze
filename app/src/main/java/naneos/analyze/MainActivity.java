@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     //data
     private List<NaneosDataObject> dataList = new ArrayList<NaneosDataObject>();
+    private List<NaneosDataObject> averageDataList = new ArrayList<NaneosDataObject>();
     private ArrayAdapter<NaneosDataObject> adapter;
     public static NaneosBleDataBroadcastReceiver bleDataReceiver;
 
@@ -305,32 +306,16 @@ public class MainActivity extends AppCompatActivity {
         NaneosDataObject conglomerateData;
 
         for (NaneosDataObject obj : dataList) {
+
         }
     }
 
 
-    private void setAllDataInFirestoreOnce() {
-        for (int i = 0; i < dataList.size(); i++) {
 
-            db.collection("DummyData").document(dataList.get(i).getDate().toString()).set(dataList.get(i))
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Log.d("Firestore", "DocumentSnapshot written with ID: " + "?");
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.w("Firestore", "Error adding document", e);
-                        }
-                    });
-        }
-    }
 
     private void SyncDataToRealtimeDB(){
         FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference();
+        DatabaseReference myDbRef = database.getReference();
         final NaneosDataObject dataToSync;
 
         if (dataList.size() > 0) {
@@ -341,7 +326,48 @@ public class MainActivity extends AppCompatActivity {
             throw new NoSuchElementException("No Data available in dataList!");
         }
 
-        myRef.child("data").child(dataToSync.getDate().toString()).setValue(dataToSync);
+        DatabaseReference dataRef =  myDbRef.child(String.valueOf(dataToSync.getSerial())).push();
+        dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                dataToSync.setStoredInDB(true);
+                adapter.notifyDataSetChanged();
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                dataToSync.setStoredInDB(false);
+                Toast.makeText(mainContext, "Couldn't store dataToSync in DB!", Toast.LENGTH_SHORT);
+            }
+        });
+    }
+
+
+
+
+
+    private void startSyncingWithTimer() {
+        if (timer != null) {
+            return;
+        }
+        timer = new Timer();
+        timer.scheduleAtFixedRate(timerTask, 0, 5000); //60000 = 1 min
+    }
+
+    private void stopSyncingWithTimer() {
+        timer.cancel();
+        timer = null;
+    }
+
+    public class NaneosBleDataBroadcastReceiver extends BroadcastReceiver {
+        public static final String SEND_BLE_DATA = "com.naneos.SEND_BLE_DATA";
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            dataList.add((NaneosDataObject) intent.getSerializableExtra("newDataObject"));
+            adapter.notifyDataSetChanged();
+            listView.smoothScrollToPosition(adapter.getCount() - 1);
+        }
     }
 
 
@@ -380,30 +406,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void startSyncingWithTimer() {
-        if (timer != null) {
-            return;
-        }
-        timer = new Timer();
-        timer.scheduleAtFixedRate(timerTask, 0, 5000);
-    }
+    private void setAllDataInFirestoreOnce() {
+        for (int i = 0; i < dataList.size(); i++) {
 
-    private void stopSyncingWithTimer() {
-        timer.cancel();
-        timer = null;
-    }
-
-    public class NaneosBleDataBroadcastReceiver extends BroadcastReceiver {
-        public static final String SEND_BLE_DATA = "com.naneos.SEND_BLE_DATA";
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            dataList.add((NaneosDataObject) intent.getSerializableExtra("newDataObject"));
-            adapter.notifyDataSetChanged();
-            listView.smoothScrollToPosition(adapter.getCount() - 1);
+            db.collection("DummyData").document(dataList.get(i).getDate().toString()).set(dataList.get(i))
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Log.d("Firestore", "DocumentSnapshot written with ID: " + "?");
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.w("Firestore", "Error adding document", e);
+                        }
+                    });
         }
     }
-
 
 }
 

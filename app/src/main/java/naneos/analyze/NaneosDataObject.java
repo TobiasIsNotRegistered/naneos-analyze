@@ -22,15 +22,18 @@ public class NaneosDataObject implements Serializable {
     private float numberC;
     private float LDSA;
 
+    //meta
+    private boolean isStoredInDB;
+    private int serial;
+
     //empty constructor
     public NaneosDataObject() {
-
+        isStoredInDB = false;
     }
 
      @Override
     public String toString() {
-        return ID + ": " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(date)
-                + "\n" + "LDSA: " + LDSA + "  Temp: " + temp + "NumberC: " + numberC + "diameter: " + diameter;
+        return "ID: " + getID() + " /LDSA: " + getLDSA() + "\t" + "Serial: " + getSerial() + "/ is Synced: " + isStoredInDB;
     }
 
     /** GETTER & SETTER **/
@@ -104,5 +107,21 @@ public class NaneosDataObject implements Serializable {
 
     public void setLDSA(float LDSA) {
         this.LDSA = LDSA;
+    }
+
+    public boolean isStoredInDB() {
+        return isStoredInDB;
+    }
+
+    public void setStoredInDB(boolean storedInDB) {
+        isStoredInDB = storedInDB;
+    }
+
+    public int getSerial() {
+        return serial;
+    }
+
+    public void setSerial(int serial) {
+        this.serial = serial;
     }
 }
