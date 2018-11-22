@@ -36,7 +36,7 @@ public class NaneosCompleteDataList{
             currentData.add(obj);
 
             if(currentData.size()>9 && currentData.size() % 10 == 0){
-                conglomerateData(currentData);
+                //conglomerateData(currentData);
             }
         }
     }
