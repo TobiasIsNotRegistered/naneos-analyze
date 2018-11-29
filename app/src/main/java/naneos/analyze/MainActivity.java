@@ -57,11 +57,12 @@ public class MainActivity extends AppCompatActivity {
     protected Switch switch_keepSynced;
     protected DrawerLayout mDrawerLayout;
     protected TextView amountOfLocalData;
+    protected TextView syncFrequency;
 
     //data
-    private List<NaneosDataObject> dataList = new ArrayList<NaneosDataObject>();
-    private List<NaneosDataObject> averageDataList = new ArrayList<NaneosDataObject>();
-    private ArrayAdapter<NaneosDataObject> adapter;
+    private List<NaneosDataObject> rawDataList = new ArrayList<NaneosDataObject>();
+    private List<DataListPerDevice> listPerDeviceMetaList = new ArrayList<DataListPerDevice>();
+    private ArrayAdapter adapter;
     public static NaneosBleDataBroadcastReceiver bleDataReceiver;
 
     //db
@@ -98,12 +99,10 @@ public class MainActivity extends AppCompatActivity {
         btn_scan = findViewById(R.id.btn_scan);
         switch_keepSynced = findViewById(R.id.switch_keepSynced);
         amountOfLocalData = findViewById(R.id.textView_amountOfDataObjects);
+        syncFrequency = findViewById(R.id.editText);
 
-        adapter = new ArrayAdapter<>(mainContext, android.R.layout.simple_list_item_1, dataList);
+        adapter = new ArrayAdapter<>(mainContext, android.R.layout.simple_list_item_1, listPerDeviceMetaList);
         listView.setAdapter(adapter);
-
-        String formattedText = getString(R.string.amountOfDataObjects, 0);
-        amountOfLocalData.setText(formattedText);
 
         /* ******************* DB ********************* */
         db = FirebaseFirestore.getInstance();
@@ -301,57 +300,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void conglomerateData() {
-        List<NaneosDataObject> alreadySyncedData;
-        NaneosDataObject conglomerateData;
-
-        for (NaneosDataObject obj : dataList) {
-
-        }
-    }
-
-
-
-
     private void SyncDataToRealtimeDB(){
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myDbRef = database.getReference();
-        final NaneosDataObject dataToSync;
 
-        if (dataList.size() > 0) {
-            //get last object
-            //TODO: get an average dataObject with as much data as possible
-            dataToSync = dataList.get(dataList.size() - 1);
-        }else{
-            throw new NoSuchElementException("No Data available in dataList!");
+        if(listPerDeviceMetaList.size() > 0){
+            /** sync data for each list of devices available **/
+            for(int i = 0; i<listPerDeviceMetaList.size(); i++){
+                //retrieve lastObject
+                final NaneosDataObject dataToSync =  listPerDeviceMetaList.get(i).store.get(listPerDeviceMetaList.get(i).store.size() - 1);
+
+                if(dataToSync.getSerial() != 0){
+                    DatabaseReference dataRef =  myDbRef.child("naneos").child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
+                    dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            dataToSync.setStoredInDB(true);
+                            adapter.notifyDataSetChanged();
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            dataToSync.setStoredInDB(false);
+                            Toast.makeText(mainContext, "Couldn't store dataToSync in DB!", Toast.LENGTH_SHORT);
+                        }
+                    });
+                }
+            }
         }
-
-        DatabaseReference dataRef =  myDbRef.child(String.valueOf(dataToSync.getSerial())).push();
-        dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
-            @Override
-            public void onSuccess(Void aVoid) {
-                dataToSync.setStoredInDB(true);
-                adapter.notifyDataSetChanged();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                dataToSync.setStoredInDB(false);
-                Toast.makeText(mainContext, "Couldn't store dataToSync in DB!", Toast.LENGTH_SHORT);
-            }
-        });
     }
 
 
-
-
-
+    //Timed Task for uploading data
     private void startSyncingWithTimer() {
         if (timer != null) {
             return;
         }
         timer = new Timer();
-        timer.scheduleAtFixedRate(timerTask, 0, 5000); //60000 = 1 min
+        int freq = 60000;
+        if(syncFrequency.getText() != null){
+            freq = Integer.parseInt(syncFrequency.getText().toString()) * 1000;
+        }else{
+            Log.d("Naneos Analyze", "Couldn't get int from TextField!");
+        }
+
+        timer.scheduleAtFixedRate(timerTask, 0, freq); //60000 = 1 min
     }
 
     private void stopSyncingWithTimer() {
@@ -359,24 +352,61 @@ public class MainActivity extends AppCompatActivity {
         timer = null;
     }
 
+
+    //receives data from class "NaneosScanCallback" and stores it in "rawDataList"
     public class NaneosBleDataBroadcastReceiver extends BroadcastReceiver {
         public static final String SEND_BLE_DATA = "com.naneos.SEND_BLE_DATA";
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            dataList.add((NaneosDataObject) intent.getSerializableExtra("newDataObject"));
+            //get the dataObject
+            NaneosDataObject currentData = (NaneosDataObject) intent.getSerializableExtra("newDataObject");
+            Log.d("NaneosAnalyze", "received dataObject!");
+
+            /** case1: metaList is empty  **/
+            if(listPerDeviceMetaList.size() == 0){
+                DataListPerDevice newList = new DataListPerDevice();
+                newList.add(currentData);
+                listPerDeviceMetaList.add(newList);
+            }else{
+            /** case2: metaList has at least one entry **/
+            boolean deviceKnown = false;
+                //check if there is a 'DataListPerDevice' for this device
+                for(int i = 0; i<listPerDeviceMetaList.size(); i++){
+                    DataListPerDevice currentList = listPerDeviceMetaList.get(i);
+                    //check metaList if we already have a dataList for this macAddress
+                    if(currentList.getMacAddress().equals(currentData.getMacAddress())) {
+                        currentList.add(currentData);
+                        deviceKnown = true;
+                    }
+                }
+                //if there's no 'DataListPerDevice' for this macAddress, create a new one and add it to the metaList
+                if(!deviceKnown){
+                    DataListPerDevice newList = new DataListPerDevice();
+                    newList.add(currentData);
+                    listPerDeviceMetaList.add(newList);
+                }
+
+            }
+
+
+
+            rawDataList.add(currentData);
             adapter.notifyDataSetChanged();
             listView.smoothScrollToPosition(adapter.getCount() - 1);
+
+            String formattedText = getString(R.string.amountOfDataObjects, listPerDeviceMetaList.size());
+            amountOfLocalData.setText(formattedText);
         }
     }
 
 
     private void SyncDataToFirestore() {
         //do not attempt to sync if no data is available
-        if (dataList.size() > 0) {
+        if (rawDataList.size() > 0) {
             //get last object
             //TODO: get an average dataObject with as much data as possible
-            final NaneosDataObject dataToSync = dataList.get(dataList.size() - 1);
+            final NaneosDataObject dataToSync = rawDataList.get(rawDataList.size() - 1);
 
             /*
             db.collection("Customers")
@@ -407,9 +437,9 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setAllDataInFirestoreOnce() {
-        for (int i = 0; i < dataList.size(); i++) {
+        for (int i = 0; i < rawDataList.size(); i++) {
 
-            db.collection("DummyData").document(dataList.get(i).getDate().toString()).set(dataList.get(i))
+            db.collection("DummyData").document(rawDataList.get(i).getDate().toString()).set(rawDataList.get(i))
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {

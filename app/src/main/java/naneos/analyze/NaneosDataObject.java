@@ -1,8 +1,8 @@
 package naneos.analyze;
 
 import java.io.Serializable;
-import java.text.DateFormat;
 import java.util.Date;
+import android.text.format.DateFormat;
 
 /**
     This class represents the Data received by the Partector.
@@ -25,10 +25,11 @@ public class NaneosDataObject implements Serializable {
     //meta
     private boolean isStoredInDB;
     private int serial;
+    private String macAddress;
 
     //empty constructor
-    public NaneosDataObject() {
-        isStoredInDB = false;
+    //necessary for firebase!
+    public NaneosDataObject(){
     }
 
      @Override
@@ -47,6 +48,16 @@ public class NaneosDataObject implements Serializable {
 
     public Date getDate() {
         return date;
+    }
+
+    public String getDateAsFirestoreKey(){
+        String dayOfTheWeek = (String) DateFormat.format("EEEE", date); // Thursday
+        String day          = (String) DateFormat.format("dd",   date); // 20
+        String monthString  = (String) DateFormat.format("MMM",  date); // Jun
+        String monthNumber  = (String) DateFormat.format("MM",   date); // 06
+        String year         = (String) DateFormat.format("yyyy", date); // 2013
+
+        return day + "-" +  monthNumber + "-" + year;
     }
 
     public void setDate(Date date) {
@@ -123,5 +134,13 @@ public class NaneosDataObject implements Serializable {
 
     public void setSerial(int serial) {
         this.serial = serial;
+    }
+
+    public String getMacAddress() {
+        return macAddress;
+    }
+
+    public void setMacAddress(String macAddress) {
+        this.macAddress = macAddress;
     }
 }

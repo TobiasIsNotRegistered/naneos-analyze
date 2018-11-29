@@ -15,6 +15,7 @@ import java.util.Calendar;
  * At the end, the new data is being sent to the mainActivity via a BroadcastReceiver
  * Most of the code here is from the old Naneos-App
  */
+//TODO: Use AsyncTask instead of Thread, do not restart on receive! (Right now, a new Thread is used to deserialize the data --> inefficient
 public class NaneosScanCallback extends ScanCallback {
 
     //Data
@@ -60,6 +61,9 @@ public class NaneosScanCallback extends ScanCallback {
                     return;
                 }
 
+
+
+
                 if (device.getName() != null && (device.getName().contains("Partector") || device.getName().contains("P2"))) {
                     String msg = "ascii: ";
 
@@ -72,6 +76,7 @@ public class NaneosScanCallback extends ScanCallback {
                         NaneosDataObject newData = new NaneosDataObject();
                         newData.setDate(Calendar.getInstance().getTime());
                         newData.setID(currentDataIndex++);
+                        newData.setMacAddress(device.getAddress());
 
                         // 1. remember it
                         lastreceived = msg;
@@ -151,6 +156,9 @@ public class NaneosScanCallback extends ScanCallback {
                         // if there was a trailing S, restore it (it was stripped by string.split
                         if (msg.charAt(msg.length() - 1) == 'S')
                             buffer = buffer + 'S';
+
+
+
 
                         //Send data to mainAcitivity by making NaneosDataObject Serializable
                         Intent intent = new Intent();
