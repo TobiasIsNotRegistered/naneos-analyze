@@ -42,6 +42,8 @@ public class NaneosScanCallback extends ScanCallback {
         this.mainActivity = activity;
     }
 
+
+
     @Override
     // callback when a BLE advertisement has been found
     public void onScanResult(int callbackType, final ScanResult result) {
@@ -165,7 +167,6 @@ public class NaneosScanCallback extends ScanCallback {
                         intent.setAction(MainActivity.bleDataReceiver.SEND_BLE_DATA);
                         intent.putExtra("newDataObject", newData);
                         mainActivity.sendBroadcast(intent);
-                        Log.d("NaneosScanCallback", "Broadcast sent to mainActivity!");
                     }
                 }
             }

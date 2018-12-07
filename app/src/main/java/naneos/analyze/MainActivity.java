@@ -32,14 +32,18 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -58,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     protected DrawerLayout mDrawerLayout;
     protected TextView amountOfLocalData;
     protected TextView syncFrequency;
+    protected TextView drawer_textfield_email;
 
     //data
     private List<NaneosDataObject> rawDataList = new ArrayList<NaneosDataObject>();
@@ -69,6 +74,11 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private Timer timer;
     private TimerTask timerTask;
+
+    //authentication
+    FirebaseAuth mAuth;
+    FirebaseUser currentUser;
+    String teamOfCurrentUser;
 
     //bluetooth
     private static final int REQUEST_ENABLE_BT = 101; // request code to enable bluetooth
@@ -91,6 +101,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        /* ******************** AUTH ********************** */
+        mAuth = FirebaseAuth.getInstance();
 
         /* ******************* Layout ********************* */
         listView = findViewById(R.id.lv_main);
@@ -111,11 +123,11 @@ public class MainActivity extends AppCompatActivity {
                 .build();
         db.setFirestoreSettings(settings);
 
-
         /* ******************* DRAWER ********************* */
         mDrawerLayout = findViewById(R.id.drawer_layout);
-
         NavigationView navigationView = findViewById(R.id.nav_view);
+        drawer_textfield_email = (TextView) navigationView.getHeaderView(0).findViewById(R.id.drawer_textfield_email);
+
         navigationView.setNavigationItemSelectedListener(
                 new NavigationView.OnNavigationItemSelectedListener() {
                     @Override
@@ -125,9 +137,20 @@ public class MainActivity extends AppCompatActivity {
                         // close drawer when item is tapped
                         mDrawerLayout.closeDrawers();
 
+                        switch (menuItem.getTitle().toString()) {
+                            case "Logout":
+                                mAuth.signOut();
+                                Toast.makeText(mainContext, "Signed out!", Toast.LENGTH_SHORT).show();
+                                Intent startLoginActivity = new Intent(mainContext, LoginActivity.class);
+                                mainContext.startActivity(startLoginActivity);
+                                break;
+                            default:
+                                Toast.makeText(mainContext, menuItem.getTitle().toString() + ": not implemented yet", Toast.LENGTH_SHORT).show();
+                        }
+
+
                         // Add code here to update the UI based on the item selected
                         // For example, swap UI fragments here
-
                         return true;
                     }
                 });
@@ -181,9 +204,6 @@ public class MainActivity extends AppCompatActivity {
         this.registerReceiver(bleDataReceiver, new IntentFilter(NaneosBleDataBroadcastReceiver.SEND_BLE_DATA));
         mScanCallback = new NaneosScanCallback(this);
 
-
-
-
         PermissionManager permissionManager = new PermissionManager(mainContext);
         permissionManager.checkLocationPermission();
         permissionManager.checkNetworkAvailability();
@@ -194,21 +214,33 @@ public class MainActivity extends AppCompatActivity {
         Log.d("MainActivity", "onCreate finnished!");
     }
 
-    public void toggleScan() {
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-        if (!isScanning) {
-            mLEScanner.startScan(mScanCallback);
-            isScanning = true;
-            btn_scan.setText("STOP");
-            Log.d("btn_scan", "Scanner started");
+        mAuth = FirebaseAuth.getInstance();
+        if (mAuth.getCurrentUser() == null) {
+            Intent startLoginActivity = new Intent(mainContext, LoginActivity.class);
+            mainContext.startActivity(startLoginActivity);
+        } else {
+            currentUser = mAuth.getCurrentUser();
+            FirebaseDatabase database = FirebaseDatabase.getInstance();
+            DatabaseReference myDbRef = database.getReference();
 
-        } else if (isScanning) {
-            mLEScanner.stopScan(mScanCallback);
-            //mLEScanner = null;
-            isScanning = false;
-            btn_scan.setText("SCAN");
+            myDbRef.child("users").child(currentUser.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    Log.d("NaneosOnResume", "DataFromFirestore: " + dataSnapshot.getValue());
+                    teamOfCurrentUser = dataSnapshot.getValue().toString();
+                }
 
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
         }
+
     }
 
     @Override
@@ -233,19 +265,49 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
+                if (mAuth != null && mAuth.getCurrentUser() != null) {
+                    drawer_textfield_email.setText(mAuth.getCurrentUser().getEmail() + "/" + teamOfCurrentUser);
+                } else {
+                    drawer_textfield_email.setText("No User signed in!");
+                }
+
                 mDrawerLayout.openDrawer(GravityCompat.START);
                 return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-
-    //TODO: Cleanup after onDestroy!
     @Override
     public void onDestroy() {
         super.onDestroy();
-
+        unregisterReceiver(bleDataReceiver);
     }
+
+    //TODO: scan in a separate thread, lookup Task/Runnable/Threads!
+    public void toggleScan() {
+
+        if (!isScanning) {
+            if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mLEScanner != null) {
+                mLEScanner.startScan(mScanCallback);
+                isScanning = true;
+                btn_scan.setText("STOP");
+                Log.d("btn_scan", "Scanner started");
+            } else {
+                initateBLE();
+            }
+        } else if (isScanning) {
+            if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled() && mLEScanner != null) {
+                mLEScanner.stopScan(mScanCallback);
+                isScanning = false;
+                btn_scan.setText("SCAN");
+            } else {
+                Toast.makeText(mainContext, "Bluetooth seems to be disabled; cannot connect to adapter. Please try re-enabling it.", Toast.LENGTH_SHORT).show();
+                isScanning = false;
+                btn_scan.setText("SCAN");
+            }
+        }
+    }
+
 
     private boolean getBluetoothScanner() {
         final BluetoothManager bluetoothManager = (BluetoothManager) mainContext.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -300,31 +362,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void SyncDataToRealtimeDB(){
+    private void SyncDataToRealtimeDB() {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myDbRef = database.getReference();
 
-        if(listPerDeviceMetaList.size() > 0){
-            /** sync data for each list of devices available **/
-            for(int i = 0; i<listPerDeviceMetaList.size(); i++){
-                //retrieve lastObject
-                final NaneosDataObject dataToSync =  listPerDeviceMetaList.get(i).store.get(listPerDeviceMetaList.get(i).store.size() - 1);
+        if (currentUser == null || teamOfCurrentUser == null) {
+            Toast.makeText(this, "Error: no available user found", Toast.LENGTH_SHORT).show();
+            return;
+        } else {
+            if (listPerDeviceMetaList.size() > 0) {
+                /** sync data for each list of devices available **/
+                for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
+                    //retrieve lastObject
+                    final NaneosDataObject dataToSync = listPerDeviceMetaList.get(i).store.get(listPerDeviceMetaList.get(i).store.size() - 1);
 
-                if(dataToSync.getSerial() != 0){
-                    DatabaseReference dataRef =  myDbRef.child("naneos").child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
-                    dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            dataToSync.setStoredInDB(true);
-                            adapter.notifyDataSetChanged();
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            dataToSync.setStoredInDB(false);
-                            Toast.makeText(mainContext, "Couldn't store dataToSync in DB!", Toast.LENGTH_SHORT);
-                        }
-                    });
+                    if (dataToSync.getSerial() != 0) {
+                        DatabaseReference dataRef = myDbRef.child(teamOfCurrentUser).child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
+                        dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                dataToSync.setStoredInDB(true);
+                                adapter.notifyDataSetChanged();
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                dataToSync.setStoredInDB(false);
+                                Toast.makeText(mainContext, "Couldn't store dataToSync in DB!", Toast.LENGTH_SHORT);
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -338,12 +405,11 @@ public class MainActivity extends AppCompatActivity {
         }
         timer = new Timer();
         int freq = 60000;
-        if(syncFrequency.getText() != null){
+        if (syncFrequency.getText() != null) {
             freq = Integer.parseInt(syncFrequency.getText().toString()) * 1000;
-        }else{
+        } else {
             Log.d("Naneos Analyze", "Couldn't get int from TextField!");
         }
-
         timer.scheduleAtFixedRate(timerTask, 0, freq); //60000 = 1 min
     }
 
@@ -353,7 +419,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    //receives data from class "NaneosScanCallback" and stores it in "rawDataList"
+    //receives data from class "NaneosScanCallback"
+    //checks if data was received from the same device and stores it sequentially in the device's list
     public class NaneosBleDataBroadcastReceiver extends BroadcastReceiver {
         public static final String SEND_BLE_DATA = "com.naneos.SEND_BLE_DATA";
 
@@ -361,27 +428,26 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             //get the dataObject
             NaneosDataObject currentData = (NaneosDataObject) intent.getSerializableExtra("newDataObject");
-            Log.d("NaneosAnalyze", "received dataObject!");
 
             /** case1: metaList is empty  **/
-            if(listPerDeviceMetaList.size() == 0){
+            if (listPerDeviceMetaList.size() == 0) {
                 DataListPerDevice newList = new DataListPerDevice();
                 newList.add(currentData);
                 listPerDeviceMetaList.add(newList);
-            }else{
-            /** case2: metaList has at least one entry **/
-            boolean deviceKnown = false;
+            } else {
+                /** case2: metaList has at least one entry **/
+                boolean deviceKnown = false;
                 //check if there is a 'DataListPerDevice' for this device
-                for(int i = 0; i<listPerDeviceMetaList.size(); i++){
+                for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
                     DataListPerDevice currentList = listPerDeviceMetaList.get(i);
                     //check metaList if we already have a dataList for this macAddress
-                    if(currentList.getMacAddress().equals(currentData.getMacAddress())) {
+                    if (currentList.getMacAddress().equals(currentData.getMacAddress())) {
                         currentList.add(currentData);
                         deviceKnown = true;
                     }
                 }
                 //if there's no 'DataListPerDevice' for this macAddress, create a new one and add it to the metaList
-                if(!deviceKnown){
+                if (!deviceKnown) {
                     DataListPerDevice newList = new DataListPerDevice();
                     newList.add(currentData);
                     listPerDeviceMetaList.add(newList);
@@ -389,11 +455,9 @@ public class MainActivity extends AppCompatActivity {
 
             }
 
-
-
             rawDataList.add(currentData);
             adapter.notifyDataSetChanged();
-            listView.smoothScrollToPosition(adapter.getCount() - 1);
+            //listView.smoothScrollToPosition(adapter.getCount() - 1);
 
             String formattedText = getString(R.string.amountOfDataObjects, listPerDeviceMetaList.size());
             amountOfLocalData.setText(formattedText);
