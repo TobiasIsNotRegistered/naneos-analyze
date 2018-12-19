@@ -6,7 +6,7 @@
     <!-- Main-Interactions -->
     <string name="switch__keepSync">Keep synced</string>
     <string name="btn_sync">Sync all</string>
-    <string name="flush">Flush</string>
+    <string name="save">Save data locally</string>
     <string name="scan">Scan</string>
     <string name="amountOfDataObjects">Anzahl momentaner lokaler Datenobjekte: %1$d</string>
 

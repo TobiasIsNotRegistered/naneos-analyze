@@ -51,7 +51,7 @@ public class NaneosScanCallback extends ScanCallback {
         final BluetoothDevice device = result.getDevice();
         final android.bluetooth.le.ScanRecord scanRecord = result.getScanRecord();
 
-        //Log.d("NaneosScanCallback", "onResult invoked!");
+        Log.d("NaneosScanCallback", "onResult invoked!");
 
         receiveAndDeserializeBleData = new Thread(new Runnable() {
             @Override
@@ -62,9 +62,6 @@ public class NaneosScanCallback extends ScanCallback {
                     Log.d("onScanResult", "device was null");
                     return;
                 }
-
-
-
 
                 if (device.getName() != null && (device.getName().contains("Partector") || device.getName().contains("P2"))) {
                     String msg = "ascii: ";

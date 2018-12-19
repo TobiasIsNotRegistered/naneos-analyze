@@ -3,10 +3,12 @@ package naneos.analyze;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
@@ -107,21 +109,29 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mProgressView = findViewById(R.id.login_progress);
 
         mAuth = FirebaseAuth.getInstance();
-
-        PermissionManager pm = new PermissionManager(this);
-        pm.checkNetworkAvailability();
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onResume() {
+        super.onResume();
+
+        PermissionManager pm = new PermissionManager(this);
+        pm.checkNetworkAvailability();
+
         currentUser = mAuth.getCurrentUser();
 
         if (currentUser != null) {
             Toast.makeText(this, "You are logged in as: " + currentUser.getEmail(), Toast.LENGTH_SHORT).show();
             Intent startMainActivity = new Intent(this, MainActivity.class);
             startActivity(startMainActivity);
+            finish();
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
     }
 
     private void populateAutoComplete() {
@@ -331,6 +341,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         private final String mEmail;
         private final String mPassword;
+        //private final String team;
 
         UserLoginTask(String email, String password) {
             mEmail = email;
@@ -352,6 +363,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                             Toast.makeText(LoginActivity.this, "Login successfull!", Toast.LENGTH_SHORT).show();
                             Intent startMainActivity = new Intent(LoginActivity.this, MainActivity.class);
                             startActivity(startMainActivity);
+                            finish();
                         } else {
                             // If sign in fails, display a message to the user.
                             Toast.makeText(LoginActivity.this, "Authentication failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
