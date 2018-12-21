@@ -30,7 +30,7 @@ public class SplashScreenActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Log.d("NaneosSplashScreen", "onResume invoked!");
-        thisContext = getApplicationContext();;
+        thisContext = getApplicationContext();
         permissionsForAndroidM();
     }
 
@@ -44,7 +44,6 @@ public class SplashScreenActivity extends AppCompatActivity {
                 MainActivity.class);
         startActivity(intent);
         finish();
-
     }
 
     private void permissionsForAndroidM(){

@@ -80,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
     protected Switch switch_keepSynced;
     protected DrawerLayout mDrawerLayout;
     protected TextView amountOfLocalData;
-    protected TextView syncFrequency;
     protected TextView drawer_textfield_email;
 
     //data
@@ -274,6 +273,7 @@ public class MainActivity extends AppCompatActivity {
             builder.setPositiveButton("Proceed", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
+
                 }
             });
             builder.setNegativeButton("Logout", new DialogInterface.OnClickListener() {

@@ -28,9 +28,12 @@ public class PermissionManager extends AppCompatActivity {
     protected static final int REQUEST_ENABLE_BT = 101; // request code to enable bluetooth
 
     Context context;
+    List<AlertDialog> allDialogs;
 
     public PermissionManager(Context receivedContext) {
+
         context = receivedContext;
+        allDialogs = new ArrayList<AlertDialog>();
     }
 
     public boolean isBluetoothEnabled(){
@@ -105,12 +108,13 @@ public class PermissionManager extends AppCompatActivity {
 
 
     public void requestLocation() {
+        final AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(context);
+        final AlertDialog dialog;
 
         if (!isLocationEnabled()) {
             // notify user
-            AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-            dialog.setMessage(context.getResources().getString(R.string.gps_network_not_enabled));
-            dialog.setPositiveButton(context.getResources().getString(R.string.open_location_settings), new DialogInterface.OnClickListener() {
+            dialogBuilder.setMessage(context.getResources().getString(R.string.gps_network_not_enabled));
+            dialogBuilder.setPositiveButton(context.getResources().getString(R.string.open_location_settings), new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface paramDialogInterface, int paramInt) {
                     // TODO Auto-generated method stub
@@ -119,15 +123,19 @@ public class PermissionManager extends AppCompatActivity {
                     //get gps
                 }
             });
-            dialog.setNegativeButton(context.getString(R.string.cancel), new DialogInterface.OnClickListener() {
+            dialogBuilder.setNegativeButton(context.getString(R.string.cancel), new DialogInterface.OnClickListener() {
 
                 @Override
                 public void onClick(DialogInterface paramDialogInterface, int paramInt) {
                     // TODO Auto-generated method stub
-
                 }
             });
-            dialog.show();
+            dialog = dialogBuilder.show();
+            allDialogs.add(dialog);
+        }else{
+            for (int i = 0; i< allDialogs.size(); i++){
+                allDialogs.get(i).dismiss();
+            }
         }
     }
 }
