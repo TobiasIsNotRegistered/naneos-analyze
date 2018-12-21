@@ -22,13 +22,15 @@ public class DataListPerDevice {
 
     @Override
     public String toString() {
-        return "Serial: " + getSerial() + " // sizeOfDataList: " + store.size()
-                + "\n" +  " // macAddress: " + getMacAddress()
-                + "\n" + "(ldsa): " + aggregatedPreviousData.getLDSA()
-                + "\n" + "(humidity): " + aggregatedPreviousData.getHumidity()
-                + "\n" + "(diameter): " + aggregatedPreviousData.getDiameter()
-                + "\n" + "(voltage): " + aggregatedPreviousData.getBatteryVoltage()
-                + "\n" + "(numberC): " + aggregatedPreviousData.getNumberC();
+        return "Serial: " + getSerial()
+                + "\n" + "macAddress: " + getMacAddress()
+                + "\n" + "received Data: " + store.size()
+                + "\n"
+                + "\n" + "ldsa: " + aggregatedPreviousData.getLDSA()
+                + "\n" + "humidity: " + aggregatedPreviousData.getHumidity()
+                + "\n" + "diameter: " + aggregatedPreviousData.getDiameter()
+                + "\n" + "voltage: " + aggregatedPreviousData.getBatteryVoltage()
+                + "\n" + "numberC: " + aggregatedPreviousData.getNumberC();
     }
 
     public void add(NaneosDataObject objectToAdd) {

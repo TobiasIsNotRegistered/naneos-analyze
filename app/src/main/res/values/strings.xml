@@ -2,13 +2,16 @@
     <!--    Standart -->
     <string name="app_name">Analyze</string>
     <string name="cancel">Abbrechen</string>
+    <string name="status">Status</string>
+    <string name="scanning">Scanning</string>
+    <string name="syncing">Syncing</string>
 
     <!-- Main-Interactions -->
     <string name="switch__keepSync">Keep synced</string>
     <string name="btn_sync">Sync all</string>
     <string name="save">Save data locally</string>
     <string name="scan">Scan</string>
-    <string name="amountOfDataObjects">Anzahl momentaner lokaler Datenobjekte: %1$d</string>
+    <string name="amountOfDataObjects">Devices: %1$d</string>
 
     <!-- MENU -->
     <string name="icon_import">Import</string>
@@ -19,7 +22,7 @@
     <!-- PermissionManager -->
     <string name="gps_network_not_enabled">Es scheint, als sei GPS nicht aktiviert. Bitte aktivieren Sie den Dienst, um fortzufahren.</string>
     <string name="open_location_settings">Einstellungen</string>
-    <string name="network_not_enabled">Es scheint, hätten Sie keine Datenverbindung. Um Daten zu synchronisieren muss eine Verbindung bestehen.</string>
+    <string name="network_not_enabled">Es scheint, als hätten Sie keine Datenverbindung. Um sich anzumelden und Daten zu synchronisieren benötigen Sie eine aktive Verbindung!</string>
     <string name="open_settings">Einstellungen</string>
     <string name="title_activity_login">Sign in</string>
 

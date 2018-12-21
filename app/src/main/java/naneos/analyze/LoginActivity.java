@@ -75,6 +75,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+    private TextView status;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,6 +108,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+        status = findViewById(R.id.tv_login_status);
 
         mAuth = FirebaseAuth.getInstance();
     }
@@ -117,6 +119,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         PermissionManager pm = new PermissionManager(this);
         pm.checkNetworkAvailability();
+
+        String s = pm.isNetworkAvailable() ? "Connected" : "No internet connection!";
+        status.setText(s);
 
         currentUser = mAuth.getCurrentUser();
 

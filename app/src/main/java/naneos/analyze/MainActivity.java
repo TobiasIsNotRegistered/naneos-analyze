@@ -1,5 +1,6 @@
 package naneos.analyze;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
@@ -13,6 +14,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -22,6 +24,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -54,8 +57,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.security.Permissions;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Timer;
@@ -71,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
     protected ListView listView;
     protected Button btn_syncOnce;
     protected Button btn_save;
-    protected Button btn_scan;
     protected Switch switch_keepSynced;
     protected DrawerLayout mDrawerLayout;
     protected TextView amountOfLocalData;
@@ -98,6 +103,12 @@ public class MainActivity extends AppCompatActivity {
     private NaneosScanCallback mScanCallback;
     private PermissionManager permissionManager;
 
+    //LE-Scanner
+    protected BluetoothAdapter mBluetoothAdapter;
+    protected BluetoothLeScanner mLEScanner;
+    protected ScanSettings settings;
+    protected List<ScanFilter> filters;
+
 
     /********* LIFECYCLE ************/
 
@@ -113,10 +124,8 @@ public class MainActivity extends AppCompatActivity {
         listView = findViewById(R.id.lv_main);
         btn_syncOnce = findViewById(R.id.btn_syncOnce);
         btn_save = findViewById(R.id.btn_save);
-        btn_scan = findViewById(R.id.btn_scan);
         switch_keepSynced = findViewById(R.id.switch_keepSynced);
         amountOfLocalData = findViewById(R.id.textView_amountOfDataObjects);
-        syncFrequency = findViewById(R.id.editText);
 
         adapter = new ArrayAdapter<>(mainContext, android.R.layout.simple_list_item_1, listPerDeviceMetaList);
         listView.setAdapter(adapter);
@@ -170,12 +179,6 @@ public class MainActivity extends AppCompatActivity {
 
         /* ************* INTERACTIONS ************************ */
 
-        btn_scan.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                toggleScan();
-            }
-        });
 
         btn_syncOnce.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -189,8 +192,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
 
 
-                Toast.makeText(MainActivity.this,"Not implemented yet!",Toast.LENGTH_SHORT).
-                show();
+                Toast.makeText(MainActivity.this, "Not implemented yet!", Toast.LENGTH_SHORT).
+                        show();
             }
         });
 
@@ -219,19 +222,22 @@ public class MainActivity extends AppCompatActivity {
         this.registerReceiver(bleDataReceiver, new IntentFilter(NaneosBleDataBroadcastReceiver.SEND_BLE_DATA));
         mScanCallback = new NaneosScanCallback(this);
 
-        permissionManager = new PermissionManager(mainContext);
-        permissionManager.checkLocationPermission();
-        permissionManager.checkNetworkAvailability();
-
-        /*  INIT */
-        permissionManager.initateBLE();
 
         Log.d("MainActivity", "onCreate finnished!");
     }
 
+
     @Override
     protected void onResume() {
         super.onResume();
+
+        PermissionManager pm = new PermissionManager(mainContext);
+        pm.requestLocation();
+        pm.checkNetworkAvailability();
+
+        if (!pm.isBluetoothEnabled()) {
+            pm.requestBluetooth();
+        }
 
 
         mAuth = FirebaseAuth.getInstance();
@@ -240,8 +246,27 @@ public class MainActivity extends AppCompatActivity {
             mainContext.startActivity(startLoginActivity);
         } else {
             currentUser = mAuth.getCurrentUser();
+            Long tsLastLogin = currentUser.getMetadata().getLastSignInTimestamp();
+            checkIfUserWantsToProceedWithCurrentAccount(tsLastLogin);
 
-            /*
+            if(pm.isBluetoothEnabled()) {
+                initateBLE();
+            }
+        }
+    }
+
+    public void checkIfUserWantsToProceedWithCurrentAccount(Long tsLastLogin) {
+        Long tsLong = System.currentTimeMillis();
+        String tsNow = tsLong.toString();
+
+        Long deltaT = (Long.valueOf(tsNow) - tsLastLogin);
+        Long deltaTinSeconds = deltaT / 1000;
+
+        Toast.makeText(mainContext, "Time since last login: " + deltaTinSeconds + "s", Toast.LENGTH_SHORT).show();
+
+        //900s = 15 min --> only asks in onResume, not while App is active
+        if (deltaTinSeconds > 3600) {
+
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Proceed with current account?");
             builder.setMessage("You are logged in as " + currentUser.getEmail() + ". Do you want to proceed with this account?");
@@ -249,7 +274,6 @@ public class MainActivity extends AppCompatActivity {
             builder.setPositiveButton("Proceed", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-
                 }
             });
             builder.setNegativeButton("Logout", new DialogInterface.OnClickListener() {
@@ -260,53 +284,7 @@ public class MainActivity extends AppCompatActivity {
                     mainContext.startActivity(startLoginActivity);
                 }
             });
-
             builder.show();
-
-            */
-
-            /** Zuweisung der Teams zu User
-             * Auskommentiert, da wir zunächst ohne Teams vorgehen
-
-            FirebaseDatabase database = FirebaseDatabase.getInstance();
-            DatabaseReference myDbRef = database.getReference();
-
-            myDbRef.child("users").child(currentUser.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    Log.d("NaneosOnResume", "DataFromFirestore: " + dataSnapshot.getValue());
-                    teamOfCurrentUser = dataSnapshot.getValue().toString();
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                }
-            });
-             **/
-        }
-
-        /** reading data from shared preferences, used to store local data and retrieve it onResume **/
-        /*
-        //read data from shared preferences
-        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
-        ArrayList<DataListPerDevice> dataFromSharedPreferences = (ArrayList<DataListPerDevice>) sharedPref.getAll().values();
-        listPerDeviceMetaList = dataFromSharedPreferences;
-        adapter.notifyDataSetChanged();
-        */
-
-    }
-
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (resultCode == RESULT_OK && requestCode == permissionManager.REQUEST_ENABLE_BT) {
-            Toast.makeText(getApplicationContext(), "Bluetooth turned on", Toast.LENGTH_SHORT);
-
-
-            //toggleScan();
         }
     }
 
@@ -336,56 +314,8 @@ public class MainActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(bleDataReceiver);
+        mLEScanner.stopScan(mScanCallback);
     }
-
-    //TODO: scan in a separate thread, lookup Task/Runnable/Threads!
-    public void toggleScan() {
-
-        if (!isScanning) {
-            if (permissionManager.mBluetoothAdapter != null && permissionManager.mBluetoothAdapter.isEnabled() && permissionManager.mLEScanner != null) {
-                permissionManager.mLEScanner.startScan(mScanCallback);
-
-                btn_scan.setText("STOP");
-                Toast.makeText(mainContext, "Scan started", Toast.LENGTH_SHORT).show();
-            } else {
-                permissionManager.initateBLE();
-                Toast.makeText(mainContext, "initated bluetooth - tap SCAN again to start scanning", Toast.LENGTH_SHORT).show();
-            }
-        } else if (isScanning) {
-            if (permissionManager.mBluetoothAdapter != null && permissionManager.mBluetoothAdapter.isEnabled() && permissionManager.mLEScanner != null) {
-                mLEScanner.stopScan(mScanCallback);
-                isScanning = false;
-                btn_scan.setText("SCAN");
-                Toast.makeText(mainContext, "Scan stopped - device will not listen to new data", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(mainContext, "Bluetooth seems to be disabled; cannot connect to adapter. Please try re-enabling it.", Toast.LENGTH_SHORT).show();
-                isScanning = false;
-                btn_scan.setText("SCAN");
-            }
-        }
-    }
-
-
-    private boolean getBluetoothScanner() {
-        final BluetoothManager bluetoothManager = (BluetoothManager) mainContext.getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-
-        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
-        settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-        filters = new ArrayList<>();
-
-        if (!mBluetoothAdapter.isEnabled()) {
-
-            Intent enableBtIntent = new Intent(
-                    BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            ((Activity) mainContext).startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
-        return mBluetoothAdapter.isEnabled();
-    }
-
-
-
 
 
     private void SyncDataToRealtimeDB() {
@@ -400,10 +330,12 @@ public class MainActivity extends AppCompatActivity {
                 /** sync data for each list of devices available **/
                 for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
                     //retrieve lastObject
+                    //TODO: retrieve averaged Data instead of lastObject!
                     final NaneosDataObject dataToSync = listPerDeviceMetaList.get(i).store.get(listPerDeviceMetaList.get(i).store.size() - 1);
 
                     if (dataToSync.getSerial() != 0) {
-                        DatabaseReference dataRef = myDbRef.child(currentUser.getEmail()).child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
+                        /** We need to replace points with commas to store it in firebase, see here: https://stackoverflow.com/questions/31904123/good-way-to-replace-invalid-characters-in-firebase-keys **/
+                        DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
                         dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
@@ -418,6 +350,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                     }
+
                 }
             }
         }
@@ -430,12 +363,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         timer = new Timer();
-        int freq = 60000;
-        if (syncFrequency.getText() != null) {
-            freq = Integer.parseInt(syncFrequency.getText().toString()) * 1000;
-        } else {
-            Log.d("Naneos Analyze", "Couldn't get int from TextField!");
-        }
+        int freq = 5000;
+
         timer.scheduleAtFixedRate(timerTask, 0, freq); //60000 = 1 min
     }
 
@@ -489,65 +418,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public Activity getActivity() {
-        return this;
-    }
+    // called in onCreate to setup bluetooth
+    public boolean initateBLE() {
 
-    /*
-    private void SyncDataToFirestore() {
-        //do not attempt to sync if no data is available
-        if (rawDataList.size() > 0) {
-            //get last object
-            //TODO: get an average dataObject with as much data as possible
-            final NaneosDataObject dataToSync = rawDataList.get(rawDataList.size() - 1);
-
-
-            db.collection("Customers")
-                    .document("Naneos")
-                    .collection("TestProjektTobi")
-                    .document(dataToSync.getDate().toString())
-                    .set(dataToSync)
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Toast.makeText(mainContext, "Document successfully sent to Firestore! ID: " + dataToSync.getDate().toString(), Toast.LENGTH_SHORT).show();
-
-                            if (oldData != null) {
-                                System.out.println("oldData: " + oldData.getLDSA() + " | dataToSync: " + dataToSync.getLDSA());
-                            }
-                            oldData = dataToSync;
-
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-
-                }
-            });
-
+        Log.d("Bluetooth Initiate", "Initiate started!");
+        // Use this check to determine whether BLE is supported on the device.
+        // Then you can selectively disable BLE-related features.
+        if (!mainContext.getPackageManager().hasSystemFeature(
+                PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Log.d("initateBLE", "Bluetooth LE seemingly not supported");
+            return false;
+        } else {
+            Log.d("initateBLE", "Bluetooth Le seems to be supported.");
         }
+
+        final BluetoothManager bluetoothManager = (BluetoothManager) mainContext.getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+
+        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
+        filters = new ArrayList<>();
+
+        mLEScanner.startScan(mScanCallback);
+        return (mBluetoothAdapter != null);
     }
 
-
-    private void setAllDataInFirestoreOnce() {
-        for (int i = 0; i < rawDataList.size(); i++) {
-
-            db.collection("DummyData").document(rawDataList.get(i).getDate().toString()).set(rawDataList.get(i))
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Log.d("Firestore", "DocumentSnapshot written with ID: " + "?");
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.w("Firestore", "Error adding document", e);
-                        }
-                    });
-        }
+    private String getDate(long time) {
+        Calendar cal = Calendar.getInstance(Locale.ENGLISH);
+        cal.setTimeInMillis(time);
+        String date = DateFormat.format("dd-MM-yyyy hh:mm:ss", cal).toString();
+        return date;
     }
-    */
 
 }
 

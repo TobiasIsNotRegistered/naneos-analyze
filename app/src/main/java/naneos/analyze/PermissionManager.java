@@ -15,21 +15,17 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PermissionManager {
+public class PermissionManager extends AppCompatActivity {
 
     //bluetooth
     protected static final int REQUEST_ENABLE_BT = 101; // request code to enable bluetooth
-    protected static final int REQUEST_ENABLE_FINE_LOCATION = 201;
-    protected BluetoothAdapter mBluetoothAdapter;
-    protected BluetoothLeScanner mLEScanner;
-    protected ScanSettings settings;
-    protected List<ScanFilter> filters;
 
     Context context;
 
@@ -37,39 +33,24 @@ public class PermissionManager {
         context = receivedContext;
     }
 
-    // called in onCreate to setup bluetooth
-    public boolean initateBLE() {
-
-
-        Log.d("Bluetooth Initiate", "Initiate started!");
-        // Use this check to determine whether BLE is supported on the device.
-        // Then you can selectively disable BLE-related features.
-        if (!context.getPackageManager().hasSystemFeature(
-                PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Log.d("initateBLE", "Bluetooth LE seemingly not supported");
+    public boolean isBluetoothEnabled(){
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null) {
+            // Device does not support Bluetooth
+            Log.d("NaneosPermissionManager", "Device does not support Bluetooth!");
             return false;
         } else {
-            Log.d("initateBLE", "Bluetooth Le seems to be supported.");
+            return mBluetoothAdapter.isEnabled();
         }
-
-        final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-
-        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
-        settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-        filters = new ArrayList<>();
-
-
-        if (!mBluetoothAdapter.isEnabled()) {
-
-            Intent enableBtIntent = new Intent(
-                    BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            ((Activity) context).startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
-        // Checks if Bluetooth is supported on the device.
-        return (mBluetoothAdapter != null);
     }
+
+    public void requestBluetooth(){
+        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        ((Activity) context).startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+    }
+
+
+
 
     public void checkNetworkAvailability() {
         if (!isNetworkAvailable()) {
@@ -103,8 +84,8 @@ public class PermissionManager {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-
-    public void checkLocationPermission() {
+    public boolean isLocationEnabled(){
+        /** location services can have two providers: gps and network - which is why we have to check both **/
         LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         boolean gps_enabled = false;
         boolean network_enabled = false;
@@ -119,7 +100,13 @@ public class PermissionManager {
         } catch (Exception ex) {
         }
 
-        if (!gps_enabled && !network_enabled) {
+        return gps_enabled || network_enabled;
+    }
+
+
+    public void requestLocation() {
+
+        if (!isLocationEnabled()) {
             // notify user
             AlertDialog.Builder dialog = new AlertDialog.Builder(context);
             dialog.setMessage(context.getResources().getString(R.string.gps_network_not_enabled));

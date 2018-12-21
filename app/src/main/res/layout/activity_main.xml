@@ -20,7 +20,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.AppCompat.ActionBar" />
+            />
 
 
         <TextView
@@ -29,19 +29,29 @@
             android:layout_height="wrap_content"
             android:text="@string/amountOfDataObjects" />
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="sync every n seconds: "/>
+            android:orientation="vertical">
 
-        <EditText
-            android:id="@+id/editText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="do not go lower than 5s"
-            android:inputType="number"
-            android:text="60" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/status"
+                android:id="@+id/tv_main_status"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/scanning"
+                android:id="@+id/tv_main_status-scanning"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/syncing"
+                android:id="@+id/tv_main_status-syncing"/>
+
+        </LinearLayout>
 
         <ListView
             android:id="@+id/lv_main"
@@ -56,12 +66,6 @@
             android:layout_weight="0.1"
             android:gravity="center_horizontal"
             android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btn_scan"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/scan" />
 
             <Button
                 android:id="@+id/btn_save"

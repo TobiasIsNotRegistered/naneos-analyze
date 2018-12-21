@@ -51,8 +51,6 @@ public class NaneosScanCallback extends ScanCallback {
         final BluetoothDevice device = result.getDevice();
         final android.bluetooth.le.ScanRecord scanRecord = result.getScanRecord();
 
-        Log.d("NaneosScanCallback", "onResult invoked!");
-
         receiveAndDeserializeBleData = new Thread(new Runnable() {
             @Override
             public void run() {
