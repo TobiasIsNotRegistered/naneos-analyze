@@ -3,8 +3,8 @@
     <string name="app_name">Analyze</string>
     <string name="cancel">Abbrechen</string>
     <string name="status">Status</string>
-    <string name="scanning">Scanning</string>
-    <string name="syncing">Syncing</string>
+    <string name="scanning">Scanning: -</string>
+    <string name="syncing">Syncing: -</string>
 
     <!-- Main-Interactions -->
     <string name="switch__keepSync">Keep synced</string>

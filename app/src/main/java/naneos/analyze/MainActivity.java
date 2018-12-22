@@ -1,7 +1,5 @@
 package naneos.analyze;
 
-import android.Manifest;
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -12,9 +10,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -36,7 +34,6 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.util.SharedPreferencesUtils;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
@@ -49,21 +46,10 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.security.Permissions;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Scanner;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -71,16 +57,20 @@ import java.util.TimerTask;
 public class MainActivity extends AppCompatActivity {
 
     //TODO: Check Location Permission Requests, doesn't request atm if its off
-    //TODO: Check if network / wlan is enabled, needed for Firebase Sync!
+    //TODO: Status: Connection to DB established?
+    //TODO: Status: Bluettoth, Location, Wlan on? (not important!)
 
     //layout
-    protected ListView listView;
+    protected ListView lv_main;
     protected Button btn_syncOnce;
     protected Button btn_save;
     protected Switch switch_keepSynced;
     protected DrawerLayout mDrawerLayout;
-    protected TextView amountOfLocalData;
+    protected TextView tv_amountOfLocalData;
     protected TextView drawer_textfield_email;
+    protected  TextView tv_main_status;
+    protected  TextView tv_main_status_scanning;
+    protected TextView tv_main_status_syncing;
 
     //data
     private List<NaneosDataObject> rawDataList = new ArrayList<NaneosDataObject>();
@@ -90,8 +80,8 @@ public class MainActivity extends AppCompatActivity {
 
     //db
     private FirebaseFirestore db;
-    private Timer timer;
-    private TimerTask timerTask;
+    private Timer timerDBSync;
+    private TimerTask timerDBSyncTask;
 
     //authentication
     FirebaseAuth mAuth;
@@ -101,12 +91,19 @@ public class MainActivity extends AppCompatActivity {
     protected Context mainContext = this;
     private NaneosScanCallback mScanCallback;
     private PermissionManager permissionManager;
+    private NaneosDataObject lastSyncedDataObject;
+    private int secondsSinceLastObjectReceived;
+    private int secondsSinceLastObjectSynced;
+    public Handler updateAssertScanStatusHandler;
+    public Handler updateAssertSyncStatusHandler;
 
     //LE-Scanner
     protected BluetoothAdapter mBluetoothAdapter;
     protected BluetoothLeScanner mLEScanner;
     protected ScanSettings settings;
     protected List<ScanFilter> filters;
+    private Timer timerAssertScanStatus;
+    private TimerTask timerAssertScanStatusTask;
 
 
     /********* LIFECYCLE ************/
@@ -120,14 +117,17 @@ public class MainActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
 
         /* ******************* Layout ********************* */
-        listView = findViewById(R.id.lv_main);
+        lv_main = findViewById(R.id.lv_main);
         btn_syncOnce = findViewById(R.id.btn_syncOnce);
         btn_save = findViewById(R.id.btn_save);
         switch_keepSynced = findViewById(R.id.switch_keepSynced);
-        amountOfLocalData = findViewById(R.id.textView_amountOfDataObjects);
+        tv_amountOfLocalData = findViewById(R.id.textView_amountOfDataObjects);
+        tv_main_status = findViewById(R.id.tv_main_status);
+        tv_main_status_scanning = findViewById(R.id.tv_main_status_scanning);
+        tv_main_status_syncing = findViewById(R.id.tv_main_status_syncing);
 
         adapter = new ArrayAdapter<>(mainContext, android.R.layout.simple_list_item_1, listPerDeviceMetaList);
-        listView.setAdapter(adapter);
+        lv_main.setAdapter(adapter);
 
         /* ******************* DB ********************* */
         db = FirebaseFirestore.getInstance();
@@ -201,20 +201,43 @@ public class MainActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
                 if (isChecked) {
                     startSyncingWithTimer();
+                    //tv_main_status_syncing.setText("Syncing: in Progress");
                 } else {
                     stopSyncingWithTimer();
+                    //tv_main_status_syncing.setText("Syncing: stopped");
                 }
             }
         });
 
-        /* ******* TIMER FOR DATA-SYNC ************* */
-        timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                //SyncDataToFirestore();
-                SyncDataToRealtimeDB();
+        /* ******* TIMERS FOR SCHEDULED STUFF (SYNCING TO DB, ASSERTING SCANNING STATUS) ************* */
+        updateAssertScanStatusHandler = new Handler(){
+            public void handleMessage(Message msg){
+                if(msg.what == 0){
+                    tv_main_status_scanning.setText(msg.obj.toString());
+                }
             }
         };
+
+        updateAssertSyncStatusHandler = new Handler() {
+            public void handleMessage(Message msg){
+                if(msg.what == 0){
+                    tv_main_status_syncing.setText(msg.obj.toString());
+                }
+            }
+        };
+
+
+        timerAssertScanStatusTask = new TimerTask() {
+            @Override
+            public void run() {
+                secondsSinceLastObjectReceived++;
+                secondsSinceLastObjectSynced++;
+                updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: in Progress - Time since last sync: " + secondsSinceLastObjectSynced).sendToTarget();
+                updateAssertScanStatusHandler.obtainMessage(0, "Scanning: in Progress - Time since last object: " + secondsSinceLastObjectReceived).sendToTarget();
+                }
+        };
+
+        startAssertScanningStatusWithTimer();
 
         /* ************** BLE *************** */
         bleDataReceiver = new NaneosBleDataBroadcastReceiver();
@@ -222,8 +245,36 @@ public class MainActivity extends AppCompatActivity {
         mScanCallback = new NaneosScanCallback(this);
 
 
-        Log.d("MainActivity", "onCreate finnished!");
+        /* ************************************* */
+        DatabaseReference connectedRef = FirebaseDatabase.getInstance().getReference(".info/connected");
+        connectedRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                boolean connected = snapshot.getValue(Boolean.class);
+                if (connected) {
+                    Toast.makeText(mainContext, "Connected", Toast.LENGTH_SHORT).show();
+                    Log.d("NaneosOnCreate", "Connected to Firebase!");
+                    switch_keepSynced.setChecked(true);
+                    updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: connected").sendToTarget();
+                } else {
+                    Toast.makeText(mainContext, "Not connected", Toast.LENGTH_SHORT).show();
+                    Log.d("NaneosOnCreate", "Not connected to Firebase!");
+                    switch_keepSynced.setChecked(false);
+                    updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: not connected to DB!").sendToTarget();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+            }
+        });
+
+
+
+        Log.d("NaneosMainActivity", "onCreate finnished!");
     }
+
+
 
 
     @Override
@@ -261,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
         Long deltaT = (Long.valueOf(tsNow) - tsLastLogin);
         Long deltaTinSeconds = deltaT / 1000;
 
-        Toast.makeText(mainContext, "Time since last login: " + deltaTinSeconds + "s", Toast.LENGTH_SHORT).show();
+        Toast.makeText(mainContext, "Weclome, " + currentUser.getEmail() + "! \n" + " Time since last login: " + deltaTinSeconds + "s", Toast.LENGTH_SHORT).show();
 
         //900s = 15 min --> only asks in onResume, not while App is active
         if (deltaTinSeconds > 3600) {
@@ -315,6 +366,8 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         unregisterReceiver(bleDataReceiver);
         mLEScanner.stopScan(mScanCallback);
+        stopAssertScanningStatusWithTimer();
+        stopSyncingWithTimer();
     }
 
 
@@ -332,45 +385,86 @@ public class MainActivity extends AppCompatActivity {
                     //retrieve lastObject
                     //TODO: retrieve averaged Data instead of lastObject!
                     final NaneosDataObject dataToSync = listPerDeviceMetaList.get(i).store.get(listPerDeviceMetaList.get(i).store.size() - 1);
+                    final DataListPerDevice currentDataList = listPerDeviceMetaList.get(i);
 
-                    if (dataToSync.getSerial() != 0) {
-                        /** We need to replace points with commas to store it in firebase, see here: https://stackoverflow.com/questions/31904123/good-way-to-replace-invalid-characters-in-firebase-keys **/
-                        DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
-                        dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                dataToSync.setStoredInDB(true);
-                                adapter.notifyDataSetChanged();
-                            }
-                        }).addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                dataToSync.setStoredInDB(false);
-                                Toast.makeText(mainContext, "Couldn't store dataToSync in DB!", Toast.LENGTH_SHORT);
-                            }
-                        });
+                    //only upload if new Data is apparent
+                    if(dataToSync != null && dataToSync != lastSyncedDataObject) {
+
+                        if (dataToSync.getSerial() != 0) {
+                            /** We need to replace points with commas to store it in firebase, see here: https://stackoverflow.com/questions/31904123/good-way-to-replace-invalid-characters-in-firebase-keys **/
+                            DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
+                            dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    secondsSinceLastObjectSynced = 0;
+                                    currentDataList.amountOfSyncedObjects++;
+                                    dataToSync.setStoredInDB(true);
+                                    adapter.notifyDataSetChanged();
+                                    lastSyncedDataObject = dataToSync;
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    dataToSync.setStoredInDB(false);
+                                    updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: Error - Could not send Data to DB!").sendToTarget();
+                                }
+                            });
+                        }
+                    }else{
+                        updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: Error - no new Data received!").sendToTarget();
+                        return;
                     }
 
                 }
+            }else{
+                updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: No Data available").sendToTarget();
             }
+        }
+    }
+
+    private void startAssertScanningStatusWithTimer(){
+        if(timerAssertScanStatus != null){
+            return;
+        }
+        timerAssertScanStatus = new Timer();
+        int freq = 1000;
+
+        timerAssertScanStatus.scheduleAtFixedRate(timerAssertScanStatusTask, 0, freq);
+    }
+
+    private void stopAssertScanningStatusWithTimer(){
+        if(timerAssertScanStatus != null){
+            timerAssertScanStatus.cancel();
+            timerAssertScanStatus = null;
         }
     }
 
 
     //Timed Task for uploading data
     private void startSyncingWithTimer() {
-        if (timer != null) {
+        if (timerDBSync != null) {
             return;
         }
-        timer = new Timer();
+
+        timerDBSync = new Timer();
         int freq = 5000;
 
-        timer.scheduleAtFixedRate(timerTask, 0, freq); //60000 = 1 min
+        timerDBSyncTask = new TimerTask() {
+            @Override
+            public void run() {
+                //SyncDataToFirestore();
+                SyncDataToRealtimeDB();
+            }
+        };
+
+        timerDBSync.scheduleAtFixedRate(timerDBSyncTask, 0, freq); //60000 = 1 min
     }
 
     private void stopSyncingWithTimer() {
-        timer.cancel();
-        timer = null;
+        if(timerDBSync != null){
+            timerDBSync.cancel();
+            timerDBSync = null;
+        }
     }
 
 
@@ -383,6 +477,9 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             //get the dataObject
             NaneosDataObject currentData = (NaneosDataObject) intent.getSerializableExtra("newDataObject");
+
+            //if new data is received, reset the timer
+            secondsSinceLastObjectReceived = 0;
 
             /** case1: metaList is empty  **/
             if (listPerDeviceMetaList.size() == 0) {
@@ -411,10 +508,10 @@ public class MainActivity extends AppCompatActivity {
             }
 
             adapter.notifyDataSetChanged();
-            //listView.smoothScrollToPosition(adapter.getCount() - 1);
+            //lv_main.smoothScrollToPosition(adapter.getCount() - 1);
 
             String formattedText = getString(R.string.amountOfDataObjects, listPerDeviceMetaList.size());
-            amountOfLocalData.setText(formattedText);
+            tv_amountOfLocalData.setText(formattedText);
         }
     }
 

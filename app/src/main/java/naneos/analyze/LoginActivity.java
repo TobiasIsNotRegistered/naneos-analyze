@@ -121,7 +121,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         pm.checkNetworkAvailability();
 
         String s = pm.isNetworkAvailable() ? "Connected" : "No internet connection!";
-        status.setText(s);
+        status.setText("Status: " + s);
 
         currentUser = mAuth.getCurrentUser();
 

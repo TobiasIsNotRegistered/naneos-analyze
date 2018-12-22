@@ -22,13 +22,6 @@
             android:background="?attr/colorPrimary"
             />
 
-
-        <TextView
-            android:id="@+id/textView_amountOfDataObjects"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/amountOfDataObjects" />
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -38,7 +31,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/status"
-                android:id="@+id/tv_main_status"/>
+                android:id="@+id/tv_main_status"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/textView_amountOfDataObjects"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/amountOfDataObjects" />
 
             <TextView
                 android:layout_width="match_parent"

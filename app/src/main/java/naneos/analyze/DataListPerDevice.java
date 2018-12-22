@@ -14,10 +14,13 @@ public class DataListPerDevice {
     private NaneosDataObject aggregatedPreviousData;
 
     public ArrayList<NaneosDataObject> store;
+    public int amountOfSyncedObjects;
+
 
     //macAddress is always available, serial not!
     public DataListPerDevice() {
         store = new ArrayList<>();
+        amountOfSyncedObjects = 0;
     }
 
     @Override
@@ -25,6 +28,7 @@ public class DataListPerDevice {
         return "Serial: " + getSerial()
                 + "\n" + "macAddress: " + getMacAddress()
                 + "\n" + "received Data: " + store.size()
+                + "\n" + "amountOfSyncedData: " + amountOfSyncedObjects
                 + "\n"
                 + "\n" + "ldsa: " + aggregatedPreviousData.getLDSA()
                 + "\n" + "humidity: " + aggregatedPreviousData.getHumidity()
