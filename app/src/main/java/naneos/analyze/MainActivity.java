@@ -269,7 +269,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
+        // start BLEtimer task here
+        startBLETimer();
 
         Log.d("NaneosMainActivity", "onCreate finnished!");
     }
@@ -540,13 +541,39 @@ public class MainActivity extends AppCompatActivity {
         return (mBluetoothAdapter != null);
     }
 
+    void startBLETimer() {
+        // create a timer which will fire once every 10 minutes and which will turn the scan off and on again
+        // I do this because android will terminate the BLE scanning by itself after 30 minutes, so I need to
+        // prevent it from doing this...
+        ScanFilter scanFilter = new ScanFilter.Builder().setDeviceName("Partector").build();
+        filters = new ArrayList<>();
+        filters.add(scanFilter);
+        final ScanSettings.Builder builderScanSettings = new ScanSettings.Builder();
+        builderScanSettings.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
+        builderScanSettings.setReportDelay(0);
+
+        System.out.println("creating a new timer");
+        Timer t = new Timer();
+        t.scheduleAtFixedRate(new TimerTask() {
+                                  @Override
+                                  public void run() {  // called repetitively, scans for devices
+                                      Log.e("Restart", "Restart scanning");
+                                      mLEScanner.stopScan(mScanCallback);
+                                      mLEScanner.startScan(filters, builderScanSettings.build(), mScanCallback);
+                                  }
+                              },
+                // set how long to wait before starting the Timer Task
+                300000,
+                // set how often to call (in ms)
+                300000);  // do this all 10 minutes
+    }
+
     private String getDate(long time) {
         Calendar cal = Calendar.getInstance(Locale.ENGLISH);
         cal.setTimeInMillis(time);
         String date = DateFormat.format("dd-MM-yyyy hh:mm:ss", cal).toString();
         return date;
     }
-
 }
 
 
