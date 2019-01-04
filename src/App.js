@@ -9,14 +9,18 @@ import ChartContainer from './ChartContainer';
 
 class App extends Component {
 
+  /** TODO: make meta-list "Devices:[Days:[x]]" in Firebase so as to not query too much data!
+   */
+
   constructor() {
     super();
     this.state = {
-      isLoading: false,
+      isLoading: true,
       width: 0,
-      height: 0,      
+      height: 0,
 
-      availableDevices : []
+      availableDevices: [],
+      chartData: [],
     };
 
     this.dataStore = [];
@@ -26,27 +30,28 @@ class App extends Component {
     this.setLoading = this.setLoading.bind(this);
     this.logout = this.logout.bind(this);
     this.cleanUpLocalData = this.cleanUpLocalData.bind(this);
+    this.fillDataForChart = this.fillDataForChart.bind(this);
   }
 
   /** ***************** AUXILIARY ***************** **/
-  toggleIsLoading(){
-    this.state.isLoading ? this.setState({isLoading:false}) : this.setState({isLoading: true});
+  toggleIsLoading() {
+    this.state.isLoading ? this.setState({ isLoading: false }) : this.setState({ isLoading: true });
   }
 
-  setLoading(boolean){
+  setLoading(boolean) {
     this.setState({
-      loading: boolean
+      isLoading: boolean
     })
   }
 
-  updateUser(user){
+  updateUser(user) {
     console.log("updated User!");
     this.setState({
       user: user
     })
   }
 
-  logout(){
+  logout() {
     firebase.auth().signOut();
     this.cleanUpLocalData();
     console.log("user signed out!")
@@ -60,22 +65,22 @@ class App extends Component {
     this.setState({ width: window.innerWidth, height: window.innerHeight });
   }
 
-  cleanUpLocalData(){
+  cleanUpLocalData() {
     this.setState({
-      availableDevices: []
+      availableDevices: [],
+      chartData: []
     })
-    this.dataStore = [];
   }
 
-  
-/** ***************** Lifecycle ***************** **/
+
+  /** ***************** Lifecycle ***************** **/
   componentDidMount() {
     this.updateWindowDimensions();
     window.addEventListener('resize', this.updateWindowDimensions);
     var self = this;
     this.getRealtimeDBConnection();
 
-    firebase.auth().onAuthStateChanged(function(user) {
+    firebase.auth().onAuthStateChanged(function (user) {
       if (user) {
         // User is signed in.
         console.log("Success!");
@@ -97,122 +102,142 @@ class App extends Component {
     this.cleanUpLocalData();
   }
 
+
+  /** ***************** DB & SYNC ***************** **/
   
-/** ***************** DB & SYNC ***************** **/
-  getDataFromRealtimeDBOnce() {
-    let dataRef = this.rtdb.ref('data');
-    console.log(new Date(1542123554414).toLocaleString());
-    this.setState({
-      isLoading: true
-    })
-    dataRef = dataRef.orderByChild('date/time');
-    dataRef.once('value').then((snapshot) => {
-      snapshot.forEach((e) => {
-        const date = new Date(e.val().date.time);
-        const chartObject = {
-          date: date,
-          time: date.toLocaleTimeString(),
-          dateLong: date.toLocaleString(),
-          dateShort: date.toLocaleDateString(),
-          diameter: e.val().diameter > 0 ? e.val().diameter : null,
-          error: e.val().error,
-          batteryVoltage: e.val().batteryVoltage > 0 ? e.val().batteryVoltage : null,
-          ldsa: e.val().ldsa > 0 ? e.val().ldsa : null,
-          humidity: e.val().humidt > 0 ? e.val().humidity : null,
-          numberC: e.val().numberC > 0 ? e.val().numberC : null,
-          temp: e.val().temp > 0 ? e.val().temp : null,
-        };
-
-        this.dataStore.push(chartObject);
-      })
-
-      this.dataStore.sort((a, b) => b.date - a.date);
-
-      this.setState({
-        isLoading: false
-      })
-    });
-  }
 
   getDataFromRealtimeDBContinuously() {
+    //get referene by getting the user's email (dots have been replaced by commas)
     let dbKey = this.state.user.email.replace(/\./g, ",");
-    const dataRef = this.rtdb.ref(dbKey);    
-    
-    dataRef.on('child_added', (e) => {
-      console.log("Key: " + e.key);
-      let tempArray = this.state.availableDevices;
-      tempArray.push(e.key);
-      this.setState({availableDevices: tempArray});
-      tempArray = null;
+    const dataRef = this.rtdb.ref(dbKey);
+    this.setLoading(true);
 
-      e.forEach(e => {
-        console.log("-Date: " + e.key);
+    let tempArray;
+    //TODO: revoke limit! (used for development) limitToFirst(1)
+    //Get all devices...
+    dataRef.on('child_added', (snap_dataPerDevice) => {
+      console.log("Found Data from Device: " + snap_dataPerDevice.key);
 
-        e.forEach(i => {
-            //console.log("--DataObj: " + i.key);
-            //console.log("--LDSA: " + i.val().ldsa);   
-          
-        })
-      })
-      /*
+      let dataPerDevice = {
+        serial: snap_dataPerDevice.key,
+        days: []
+      }
 
-      const date = new Date(e.val().date.time);
-        const chartObject = {
-          date: date,
-          time: date.toLocaleTimeString(),
-          dateLong: date.toLocaleString(),
-          dateShort: date.toLocaleDateString(),
-          diameter: e.val().diameter > 0 ? e.val().diameter : null,
-          error: e.val().error,
-          batteryVoltage: e.val().batteryVoltage > 0 ? e.val().batteryVoltage : null,
-          ldsa: e.val().ldsa > 0 ? e.val().ldsa : null,
-          humidity: e.val().humidt > 0 ? e.val().humidity : null,
-          numberC: e.val().numberC,
-          temp: e.val().temp > 0 ? e.val().temp : null,
-        };
-
-        if (this.state.currentMaxValueLDSA < chartObject.ldsa) {
-          this.setState({ currentMaxValueLDSA: chartObject.ldsa,
-           });
+      snap_dataPerDevice.forEach(snap_dataPerDay => {
+        console.log("found a day")
+        let dataPerDay = {
+          day: snap_dataPerDay.key,
+          data: []
         }
 
-        this.dataStore.push(chartObject);
+        snap_dataPerDay.forEach(snap_dataObject => {
+          let dataForChart = snap_dataObject.val();
+          dataForChart.time = snap_dataObject.val().date.hours.toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
+          dataPerDay.data.push(dataForChart);
+        })
 
-        */
+        dataPerDevice.days.push(dataPerDay);
+      });
+
+      tempArray = this.state.availableDevices;
+      tempArray.push(dataPerDevice);
+      this.setState({ availableDevices: tempArray });
+
+      snap_dataPerDevice.forEach(i => {
+        //console.log("--DataObj: " + i.key);
+        //console.log("--LDSA: " + i.val().ldsa);   
+
+      })
     })
+    this.setLoading(false);
+    /*
+
+    const date = new Date(e.val().date.time);
+      const chartObject = {
+        date: date,
+        time: date.toLocaleTimeString(),
+        dateLong: date.toLocaleString(),
+        dateShort: date.toLocaleDateString(),
+        diameter: e.val().diameter > 0 ? e.val().diameter : null,
+        error: e.val().error,
+        batteryVoltage: e.val().batteryVoltage > 0 ? e.val().batteryVoltage : null,
+        ldsa: e.val().ldsa > 0 ? e.val().ldsa : null,
+        humidity: e.val().humidt > 0 ? e.val().humidity : null,
+        numberC: e.val().numberC,
+        temp: e.val().temp > 0 ? e.val().temp : null,
+      };
+
+      if (this.state.currentMaxValueLDSA < chartObject.ldsa) {
+        this.setState({ currentMaxValueLDSA: chartObject.ldsa,
+         });
+      }
+
+      this.dataStore.push(chartObject);
+
+      */
   }
 
+  fillDataForChart(_data) {
+    this.setState({
+      chartData: _data
+    })
+
+    console.log(_data);
+  }
+
+
   /** ***************** RENDER ***************** **/
-  render() {    
-
-    if (this.state.isLoading || this.state.availableDevices.length < 1) {
-      return <LoaderScreen />
+  render() {
+    //user not logged in
+    if (!this.state.user) {
+      return (
+        <div className="App">
+          <Welcome setLoading={this.setLoading} />
+        </div>
+      );
+      //user is logged in
     } else {
+      if (this.state.isLoading) {
+        return <LoaderScreen />
+      } else {
 
-      let current_chart_data = this.dataStore.sort((a,b) => b.date - a.date); // .slice(0, this.state.amountOfDataInChart);
+        let current_chart_data = this.dataStore.sort((a, b) => b.date - a.date); // .slice(0, this.state.amountOfDataInChart);
 
-      if(!this.state.user){
         return (
-          <div className="App">
-            <Welcome setLoading={this.setLoading}/>  
-          </div>
-        );
-      }else{
-        return(
           <div className="main">
             <p>Welcome, you are now logged in as: {this.state.user.email}</p>
             <button onClick={() => this.logout()}>LogOut!</button>
-            <p>Available Devices: </p>
-            {this.state.availableDevices.map(string => {
-              return(
-                <div>{string}</div>
+            <p>Available Devices: {this.state.availableDevices.length < 1 ? "loading..." : this.state.availableDevices.length}</p>
+
+
+            {/** For each device, each day, each dataObject, each data */}            
+            {this.state.availableDevices.map(device => {
+              return (
+                <div>
+                  <p>{device.serial}</p>
+                  {device.days.map(day => {
+                    return (
+                      <div>
+                        <p onClick={() => this.fillDataForChart(day.data)}>{day.day}: {day.data.length} Datensätze</p>
+                        {/*}
+                        {day.data.map(dataObject => {
+                          return (
+                             <div>{dataObject.date.hours}:{dataObject.date.minutes}:{dataObject.date.seconds} --> {dataObject.ldsa}</div> 
+                          )
+                        })}
+                        */}
+                      </div>
+                    )
+                  })}
+                </div>
               )
             })}
-            <ChartContainer data={current_chart_data} dataStore = {this.dataStore}/>
-          </div>          
+
+            {this.state.availableDevices.length < 1 ? "Loading data..." : <ChartContainer data={this.state.chartData} width={this.state.width} height={this.state.height} />}            
+          </div>
         );
       }
-      
+
     }
   }
 }
@@ -292,23 +317,63 @@ export default App;
     })
   }
 
-  
+
 
   deleteAllElementsInFirestore() {
     const colRef = this.db.collection("/Customers/Naneos/TestProjektTobi");
 
     /* this.setState({isLoading: true}); */
-    /*
+/*
 
-    const numberOfEntries = this.state.rawData.length;
-    let numberOfDeletions = 0;
+const numberOfEntries = this.state.rawData.length;
+let numberOfDeletions = 0;
 
-    colRef.get().then((snapshot) => {
-      snapshot.forEach((doc) => {
-        doc.ref.delete()
-          .catch(e => console.log(e.message));
-      })
+colRef.get().then((snapshot) => {
+  snapshot.forEach((doc) => {
+    doc.ref.delete()
+      .catch(e => console.log(e.message));
+  })
+})
+}
+
+*/
+
+/*
+
+getDataFromRealtimeDBOnce() {
+    let dataRef = this.rtdb.ref('data');
+    console.log(new Date(1542123554414).toLocaleString());
+    this.setState({
+      isLoading: true
     })
+
+    dataRef = dataRef.orderByChild('date/time');
+    dataRef.once('value').then((snapshot) => {
+      snapshot.forEach((e) => {
+        const date = new Date(e.val().date.time);
+        const chartObject = {
+          date: date,
+          time: date.toLocaleTimeString(),
+          dateLong: date.toLocaleString(),
+          dateShort: date.toLocaleDateString(),
+          diameter: e.val().diameter > 0 ? e.val().diameter : null,
+          error: e.val().error,
+          batteryVoltage: e.val().batteryVoltage > 0 ? e.val().batteryVoltage : null,
+          ldsa: e.val().ldsa > 0 ? e.val().ldsa : null,
+          humidity: e.val().humidt > 0 ? e.val().humidity : null,
+          numberC: e.val().numberC > 0 ? e.val().numberC : null,
+          temp: e.val().temp > 0 ? e.val().temp : null,
+        };
+
+        this.dataStore.push(chartObject);
+      })
+
+      this.dataStore.sort((a, b) => b.date - a.date);
+
+      this.setState({
+        isLoading: false
+      })
+    });
   }
 
   */
