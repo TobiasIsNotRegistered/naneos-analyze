@@ -10,24 +10,19 @@ class ChartContainer extends Component {
     constructor() {
         super();
         this.state = {
-            currentDataKey: "ldsa"
+            currentDataKey1: "ldsa",
+            currentDataKey2: "humidity"
         }
 
     }
 
     componentDidMount() {
-
     }
 
-    handleSelectDataKeyChange(event) {
-        this.setState({
-            currentDataKey: event.target.value
-        })
-    }
-
+   
 
     render() {
-        let data = this.props.data;
+        let data = this.props.data.slice();
 
         if (data.length > 0) {
             return (
@@ -44,8 +39,8 @@ class ChartContainer extends Component {
                     </div>
 
                     <Select
-                        value={this.state.currentDataKey}
-                        onChange={(event) => this.handleSelectDataKeyChange(event)}
+                        value={this.state.currentDataKey1}
+                        onChange={(event) => this.setState({currentDataKey1 : event.target.value})}
                         inputProps={{
                             name: 'selectDataKey',
                             id: 'selectDataKey',
@@ -68,9 +63,35 @@ class ChartContainer extends Component {
                         <Legend />
                         <Brush></Brush>
                         <ReferenceLine y={9800} label="Max" stroke="red" />
-                        <Line type="monotone" dataKey={this.state.currentDataKey} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} />
+                        <Line type="monotone" dataKey={this.state.currentDataKey1} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} />
                     </LineChart>
 
+                    <Select
+                        value={this.state.currentDataKey2}
+                        onChange={(event) => this.setState({currentDataKey2 : event.target.value})}
+                        inputProps={{
+                            name: 'selectDataKey',
+                            id: 'selectDataKey',
+                        }}
+                    >
+
+                        <MenuItem value={"ldsa"}>LDSA</MenuItem>
+                        <MenuItem value={"humidity"}>Humidity</MenuItem>
+                        <MenuItem value={"diameter"}>Diameter</MenuItem>
+                        <MenuItem value={"batteryVoltage"}>BatteryVoltage</MenuItem>
+                        <MenuItem value={"temp"}>Temperature</MenuItem>
+                    </Select>
+
+                     <LineChart width={0.9 * this.props.width} height={300} data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
+
+                        <XAxis dataKey="time" />
+                        <YAxis />
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <Tooltip />
+                        <Legend />
+                        <ReferenceLine y={9800} label="Max" stroke="red" />
+                        <Line type="monotone" dataKey={this.state.currentDataKey2} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} />
+                    </LineChart>
                 </div>
             )
         } else {

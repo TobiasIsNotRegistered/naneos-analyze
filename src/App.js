@@ -21,9 +21,10 @@ class App extends Component {
 
       availableDevices: [],
       chartData: [],
+      currentlyViewedDayOfDevice1: ""
     };
 
-    this.dataStore = [];
+    this.dataRefForListener;
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
     this.updateUser = this.updateUser.bind(this);
     this.toggleIsLoading = this.toggleIsLoading.bind(this);
@@ -104,7 +105,7 @@ class App extends Component {
 
 
   /** ***************** DB & SYNC ***************** **/
-  
+
 
   getDataFromRealtimeDBContinuously() {
     //get referene by getting the user's email (dots have been replaced by commas)
@@ -130,6 +131,38 @@ class App extends Component {
           data: []
         }
 
+        //registering listeners for all days and devices
+        //TODO: this doesn't work as intended (and not very elegant) needs update!
+        let dbKeyForListener = dbKey + "/" + snap_dataPerDevice.key + "/" + snap_dataPerDay.key;
+        console.log("registered listeners on: " + dbKeyForListener);
+        const dbRefForListener = this.rtdb.ref(dbKeyForListener);
+        dbRefForListener.endAt().limitToLast(1).on('child_added', (snap_dataObject) => {
+          console.log(snap_dataObject.val());
+
+          if (this.state.availableDevices != null && this.state.availableDevices.length > 0) {
+            console.log("Update of Chart should happen!")
+            let _tempArray = this.state.availableDevices;
+            let device = _tempArray.find(function (device) { return device.serial == snap_dataObject.val().serial });
+
+            if (device) {
+              let dataForChart = snap_dataObject.val();
+              dataForChart.time = snap_dataObject.val().date.hours.toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
+
+              let _tempArray = this.state.chartData;
+              
+              //update chart if user has clicked on it
+              if (this.state.chartData.length > 0 && this.state.chartData[0].serial == dataForChart.serial) {
+                _tempArray.push(dataForChart);
+
+                console.log("chartData updated!");
+                this.setState({
+                  chartData: _tempArray
+                })
+              }
+            }
+          }
+        })
+
         snap_dataPerDay.forEach(snap_dataObject => {
           let dataForChart = snap_dataObject.val();
           dataForChart.time = snap_dataObject.val().date.hours.toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
@@ -142,12 +175,6 @@ class App extends Component {
       tempArray = this.state.availableDevices;
       tempArray.push(dataPerDevice);
       this.setState({ availableDevices: tempArray });
-
-      snap_dataPerDevice.forEach(i => {
-        //console.log("--DataObj: " + i.key);
-        //console.log("--LDSA: " + i.val().ldsa);   
-
-      })
     })
     this.setLoading(false);
     /*
@@ -177,14 +204,12 @@ class App extends Component {
       */
   }
 
+
   fillDataForChart(_data) {
     this.setState({
-      chartData: _data
+      chartData: _data,
     })
-
-    console.log(_data);
   }
-
 
   /** ***************** RENDER ***************** **/
   render() {
@@ -201,8 +226,6 @@ class App extends Component {
         return <LoaderScreen />
       } else {
 
-        let current_chart_data = this.dataStore.sort((a, b) => b.date - a.date); // .slice(0, this.state.amountOfDataInChart);
-
         return (
           <div className="main">
             <p>Welcome, you are now logged in as: {this.state.user.email}</p>
@@ -210,7 +233,7 @@ class App extends Component {
             <p>Available Devices: {this.state.availableDevices.length < 1 ? "loading..." : this.state.availableDevices.length}</p>
 
 
-            {/** For each device, each day, each dataObject, each data */}            
+            {/** For each device, each day, each dataObject, each data */}
             {this.state.availableDevices.map(device => {
               return (
                 <div>
@@ -233,7 +256,7 @@ class App extends Component {
               )
             })}
 
-            {this.state.availableDevices.length < 1 ? "Loading data..." : <ChartContainer data={this.state.chartData} width={this.state.width} height={this.state.height} />}            
+            {this.state.availableDevices.length < 1 ? "Loading data..." : <ChartContainer data={this.state.chartData} width={this.state.width} height={this.state.height} />}
           </div>
         );
       }
