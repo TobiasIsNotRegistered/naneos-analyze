@@ -43,6 +43,16 @@ public class NaneosScanCallback extends ScanCallback {
     }
 
 
+    @Override
+    // callback when scan fails
+    public void onScanFailed(int errorcode) {
+        Log.d("onScanFailed", "Scan failed with error code " + errorcode);
+        // error codes below for reference
+        //SCAN_FAILED_ALREADY_STARTED = 1;
+        //SCAN_FAILED_APPLICATION_REGISTRATION_FAILED = 2;
+        //SCAN_FAILED_INTERNAL_ERROR = 3;
+        //SCAN_FAILED_FEATURE_UNSUPPORTED = 4;
+    }
 
     @Override
     // callback when a BLE advertisement has been found
@@ -51,10 +61,11 @@ public class NaneosScanCallback extends ScanCallback {
         final BluetoothDevice device = result.getDevice();
         final android.bluetooth.le.ScanRecord scanRecord = result.getScanRecord();
 
+
         receiveAndDeserializeBleData = new Thread(new Runnable() {
             @Override
             public void run() {
-
+                int RSSI;
                 // use lastreceived and buffer to parse data properly
                 if (device == null /*|| device.getName() == null*/) {
                     Log.d("onScanResult", "device was null");
@@ -63,6 +74,8 @@ public class NaneosScanCallback extends ScanCallback {
 
                 if (device.getName() != null && (device.getName().contains("Partector") || device.getName().contains("P2"))) {
                     String msg = "ascii: ";
+                    RSSI = result.getRssi();
+                    Log.d("onScanResult", "RSSI is " + RSSI);
 
                     for (byte b : scanRecord.getBytes())
                         msg += (char) (b & 0xFF);
@@ -130,9 +143,13 @@ public class NaneosScanCallback extends ScanCallback {
                                             newData.setSerial(serial);
                                             break;
                                         case 'D':
-                                            diameter = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
+                                            System.out.println("length is " + parts[i].length());
+                                            if(parts[i].length() > 1 ) {
+                                                diameter = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
+                                                //todo: string index out of bounds exception length = 1 regionstart = 1, regionlength = 1
 
-                                            newData.setDiameter(diameter);
+                                                newData.setDiameter(diameter);
+                                            }
                                             break;
                                         case 'C':
                                             number = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));

@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         /* ******************** AUTH ********************** */
-        mAuth = FirebaseAuth.getInstance();
+        mAuth = FirebaseAuth.getInstance();     // MF: does this work without internet permission?
 
         /* ******************* Layout ********************* */
         lv_main = findViewById(R.id.lv_main);
@@ -130,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
         lv_main.setAdapter(adapter);
 
         /* ******************* DB ********************* */
-        db = FirebaseFirestore.getInstance();
+        db = FirebaseFirestore.getInstance();       // does this work without permission?
         FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
                 .setTimestampsInSnapshotsEnabled(true)
                 .build();
@@ -257,7 +257,7 @@ public class MainActivity extends AppCompatActivity {
                     switch_keepSynced.setChecked(true);
                     updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: connected").sendToTarget();
                 } else {
-                    Toast.makeText(mainContext, "Not connected", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mainContext, "Not connected", Toast.LENGTH_SHORT).show();    // TODO: restart syncing here!
                     Log.d("NaneosOnCreate", "Not connected to Firebase!");
                     switch_keepSynced.setChecked(false);
                     updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: not connected to DB!").sendToTarget();
@@ -270,9 +270,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // start BLEtimer task here
+
         startBLETimer();
 
-        Log.d("NaneosMainActivity", "onCreate finnished!");
+        Log.d("NaneosMainActivity", "onCreate finished!");
     }
 
 
@@ -290,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
             pm.requestBluetooth();
         }
 
+        // TODO: don't you need to wait until premissions are granted somehow?
 
         mAuth = FirebaseAuth.getInstance();
         if (mAuth.getCurrentUser() == null) {
@@ -377,7 +379,8 @@ public class MainActivity extends AppCompatActivity {
         DatabaseReference myDbRef = database.getReference();
 
         if (currentUser == null) {
-            Toast.makeText(this, "Error: no available user found", Toast.LENGTH_SHORT).show();
+            //todo: next line makes an error if java.lang.RuntimeException: Can't toast on a thread that has not called Looper.prepare()
+            //Toast.makeText(this, "Error: no available user found", Toast.LENGTH_SHORT).show();
             return;
         } else {
             if (listPerDeviceMetaList.size() > 0) {
@@ -448,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         timerDBSync = new Timer();
-        int freq = 5000;
+        int freq = 60000; //60000 = 1 min
 
         timerDBSyncTask = new TimerTask() {
             @Override
@@ -458,7 +461,7 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        timerDBSync.scheduleAtFixedRate(timerDBSyncTask, 0, freq); //60000 = 1 min
+        timerDBSync.scheduleAtFixedRate(timerDBSyncTask, 0, freq);
     }
 
     private void stopSyncingWithTimer() {
@@ -537,7 +540,21 @@ public class MainActivity extends AppCompatActivity {
         settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
         filters = new ArrayList<>();
 
-        mLEScanner.startScan(mScanCallback);
+        //mLEScanner.startScan(mScanCallback);
+
+
+        ScanFilter scanFilter = new ScanFilter.Builder().setDeviceName("Partector").build();
+        final ScanSettings.Builder builderScanSettings = new ScanSettings.Builder();
+        builderScanSettings.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
+        builderScanSettings.setReportDelay(0);
+        filters = new ArrayList<>();
+        filters.add(scanFilter);
+        filters.add(new ScanFilter.Builder().setDeviceName("P2").build());
+        mLEScanner.startScan(filters, builderScanSettings.build(), mScanCallback);
+
+
+
+
         return (mBluetoothAdapter != null);
     }
 
@@ -548,9 +565,12 @@ public class MainActivity extends AppCompatActivity {
         ScanFilter scanFilter = new ScanFilter.Builder().setDeviceName("Partector").build();
         filters = new ArrayList<>();
         filters.add(scanFilter);
+        filters.add(new ScanFilter.Builder().setDeviceName("P2").build());
         final ScanSettings.Builder builderScanSettings = new ScanSettings.Builder();
         builderScanSettings.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
         builderScanSettings.setReportDelay(0);
+
+
 
         System.out.println("creating a new timer");
         Timer t = new Timer();
