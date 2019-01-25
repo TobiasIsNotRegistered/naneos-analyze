@@ -3,9 +3,16 @@ import './App.css';
 import firebase from "./Firestore.js";
 import LoaderScreen from './LoaderScreen.js'
 import Welcome from './Welcome.js'
-
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Brush, ReferenceLine } from 'recharts';
+import Paper from '@material-ui/core/Paper';
+import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
+import ExpansionPanel from '@material-ui/core/ExpansionPanel';
+import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
+import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ChartContainer from './ChartContainer';
+import { Divider, ListItem } from '@material-ui/core';
+import { List } from '@material-ui/core';
 
 class App extends Component {
 
@@ -21,10 +28,10 @@ class App extends Component {
 
       availableDevices: [],
       chartData: [],
-      currentlyViewedDayOfDevice1: ""
+      currentlyViewedDayOfDevice1: "",
+      chartisLoading: false,
     };
 
-    this.dataRefForListener;
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
     this.updateUser = this.updateUser.bind(this);
     this.toggleIsLoading = this.toggleIsLoading.bind(this);
@@ -75,6 +82,10 @@ class App extends Component {
 
 
   /** ***************** Lifecycle ***************** **/
+  componentWillMount() {
+    this.setLoading(true);
+  }
+
   componentDidMount() {
     this.updateWindowDimensions();
     window.addEventListener('resize', this.updateWindowDimensions);
@@ -117,6 +128,7 @@ class App extends Component {
     //TODO: revoke limit! (used for development) limitToFirst(1)
     //Get all devices...
     dataRef.on('child_added', (snap_dataPerDevice) => {
+      this.setLoading(true);
       console.log("Found Data from Device: " + snap_dataPerDevice.key);
 
       let dataPerDevice = {
@@ -149,7 +161,7 @@ class App extends Component {
               dataForChart.time = snap_dataObject.val().date.hours.toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
 
               let _tempArray = this.state.chartData;
-              
+
               //update chart if user has clicked on it
               if (this.state.chartData.length > 0 && this.state.chartData[0].serial == dataForChart.serial) {
                 _tempArray.push(dataForChart);
@@ -164,6 +176,7 @@ class App extends Component {
         })
 
         snap_dataPerDay.forEach(snap_dataObject => {
+          dataPerDay.time = snap_dataObject.val().date.time;
           let dataForChart = snap_dataObject.val();
           dataForChart.time = snap_dataObject.val().date.hours.toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
           dataPerDay.data.push(dataForChart);
@@ -175,38 +188,22 @@ class App extends Component {
       tempArray = this.state.availableDevices;
       tempArray.push(dataPerDevice);
       this.setState({ availableDevices: tempArray });
+      this.setLoading(false);
     })
-    this.setLoading(false);
-    /*
 
-    const date = new Date(e.val().date.time);
-      const chartObject = {
-        date: date,
-        time: date.toLocaleTimeString(),
-        dateLong: date.toLocaleString(),
-        dateShort: date.toLocaleDateString(),
-        diameter: e.val().diameter > 0 ? e.val().diameter : null,
-        error: e.val().error,
-        batteryVoltage: e.val().batteryVoltage > 0 ? e.val().batteryVoltage : null,
-        ldsa: e.val().ldsa > 0 ? e.val().ldsa : null,
-        humidity: e.val().humidt > 0 ? e.val().humidity : null,
-        numberC: e.val().numberC,
-        temp: e.val().temp > 0 ? e.val().temp : null,
-      };
-
-      if (this.state.currentMaxValueLDSA < chartObject.ldsa) {
-        this.setState({ currentMaxValueLDSA: chartObject.ldsa,
-         });
-      }
-
-      this.dataStore.push(chartObject);
-
-      */
+   
   }
 
 
   fillDataForChart(_data) {
+    let maxAmountData = 1000;
+
+    if (_data.length > maxAmountData) {
+      _data = _data.slice(_data.length - maxAmountData, _data.length);
+    }
+
     this.setState({
+      chartisLoading: true,
       chartData: _data,
     })
   }
@@ -226,37 +223,98 @@ class App extends Component {
         return <LoaderScreen />
       } else {
 
+        let lastReceivedData = "null";
+
+        //TODO: FIND LATEST DATABOBJECT
+        //ALSO, don't do it here but rather when the data arrives
+        if (this.state.availableDevices.length > 1) {
+          lastReceivedData = this.state.availableDevices[0];
+          lastReceivedData = lastReceivedData.days[0];
+          lastReceivedData = lastReceivedData.data[0];
+        }
+
         return (
           <div className="main">
-            <p>Welcome, you are now logged in as: {this.state.user.email}</p>
-            <button onClick={() => this.logout()}>LogOut!</button>
-            <p>Available Devices: {this.state.availableDevices.length < 1 ? "loading..." : this.state.availableDevices.length}</p>
+
+            <Paper className="main_Welcome_header">
+
+              <div className="main_Welcome_header_lhs">
+                <Typography variant="h5" component="h3">
+                  Naneos - Analyze
+              </Typography>
+              </div>
+
+              <div className="main_Welcome_header_rhs">
+               
+                
+                <Button onClick={() => this.logout()} className="main--Welcome_btnLogout">
+                  LogOut {this.state.user.email}
+              </Button>
+              </div>
+            </Paper>
+
+            <Paper className="main_Welcome graph">
+              <ChartContainer data={this.state.chartData} width={this.state.width} height={this.state.height} />
+            </Paper>
+
+            <Paper className="main_Welcome graph">
+              <ChartContainer data={this.state.chartData} width={this.state.width} height={this.state.height} />
+            </Paper>
 
 
-            {/** For each device, each day, each dataObject, each data */}
-            {this.state.availableDevices.map(device => {
-              return (
-                <div>
-                  <p>{device.serial}</p>
-                  {device.days.map(day => {
+            <Paper className="main_Welcome">
+              <div className="main_Welcome_containter">
+                <Typography variant="h5" component="h3">
+                  Available Devices: {this.state.availableDevices.length < 1 ? "loading..." : this.state.availableDevices.length}
+                </Typography>
+
+                {/** For each device, each day, each dataObject, each data */}
+                <div className="main_Welcome_epContainer">
+                  {this.state.availableDevices.map(device => {
                     return (
-                      <div>
-                        <p onClick={() => this.fillDataForChart(day.data)}>{day.day}: {day.data.length} Datensätze</p>
-                        {/*}
-                        {day.data.map(dataObject => {
-                          return (
-                             <div>{dataObject.date.hours}:{dataObject.date.minutes}:{dataObject.date.seconds} --> {dataObject.ldsa}</div> 
-                          )
-                        })}
-                        */}
-                      </div>
+                      <ExpansionPanel className="main_Welcome_ep" >
+                        <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography>{device.serial}</Typography>
+                        </ExpansionPanelSummary>
+                        <ExpansionPanelDetails className="main_Welcome_epDetails">
+                          <List>
+                            {device.days
+                              .sort((day1, day2) => { return (day2.time - day1.time) })
+                              .map(day => {
+                                return (
+                                  <ListItem>
+                                    <div onClick={() => this.fillDataForChart(day.data)} className="main_Welcome_epDetails_btn">
+                                      <Button>{day.day} - {day.data.length} Records</Button>
+                                      <Divider />
+                                    </div>
+                                  </ListItem>
+                                )
+                              })}
+                          </List>
+                        </ExpansionPanelDetails>
+                      </ExpansionPanel>
                     )
                   })}
                 </div>
-              )
-            })}
 
-            {this.state.availableDevices.length < 1 ? "Loading data..." : <ChartContainer data={this.state.chartData} width={this.state.width} height={this.state.height} />}
+                <div className="main_Welcome_lastReceived">
+                  <Paper>
+                    Last Received Data
+                  <br /> Serial: {lastReceivedData.serial}
+                    <br /> LDSA: {lastReceivedData.ldsa}
+                    <br /> Humidity: {lastReceivedData.humidity}
+                    <br /> Temp: {lastReceivedData.temp}
+                    <br /> Date: {lastReceivedData.dateAsFirestoreKey}
+                  </Paper>
+                </div>
+
+
+              </div>
+            </Paper>
+
+            <Paper className="main_Welcome graph">
+              <ChartContainer data={this.state.chartData} width={this.state.width} height={this.state.height} />
+            </Paper>
           </div>
         );
       }

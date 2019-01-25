@@ -3,10 +3,10 @@ import './Welcome.css';
 import firebase from "./Firestore.js";
 import Card from '@material-ui/core/Card';
 import CardActions from '@material-ui/core/CardActions';
-import CardContent from '@material-ui/core/CardContent';
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
+import { CardContent } from '@material-ui/core';
 
 
 class Welcome extends Component {
@@ -24,11 +24,13 @@ class Welcome extends Component {
     }
 
     attemptLogin() {
-        this.props.setLoading;
+        this.props.setLoading(true);
         firebase.auth().signInWithEmailAndPassword(this.state.email, this.state.password).catch(function (error) {
             // Handle Errors here.
+            /*
             var errorCode = error.code;
             var errorMessage = error.message;
+            */
             // ...
         });
         console.log(this.state.email + " / " + this.state.password)
@@ -38,12 +40,14 @@ class Welcome extends Component {
         return (
             <div className="Welcome">
                 <Card className="Welcome--CardLogin">
+                    <CardContent>
                     <Typography color="textSecondary" gutterBottom>
                         Naneos - Analyze
                 </Typography>
                     <Typography variant="h5" component="h2">
                         Welcome
                 </Typography>
+               
 
                     <TextField className="Welcome--TextField"
                         label="E-Mail"
@@ -56,6 +60,7 @@ class Welcome extends Component {
                         onChange={(x) => this.setState({ password: x.target.value })}
                         margin="normal"
                     />
+                     </CardContent>
 
 
                     <CardActions className="Welcome--Button">

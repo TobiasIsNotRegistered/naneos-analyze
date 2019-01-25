@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
-import firebase from "./Firestore.js";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Brush, ReferenceLine } from 'recharts';
-import Clock from "./Clock.js";
 import { Select, MenuItem } from '@material-ui/core/';
 
 
@@ -11,7 +9,7 @@ class ChartContainer extends Component {
         super();
         this.state = {
             currentDataKey1: "ldsa",
-            currentDataKey2: "humidity"
+            currentDataKey2: "humidity",
         }
 
     }
@@ -54,7 +52,7 @@ class ChartContainer extends Component {
                         <MenuItem value={"temp"}>Temperature</MenuItem>
                     </Select>
 
-                    <LineChart width={0.9 * this.props.width} height={300} data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
+                    <LineChart width={this.props.width-150} height={300} data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
 
                         <XAxis dataKey="time" />
                         <YAxis />
@@ -82,7 +80,7 @@ class ChartContainer extends Component {
                         <MenuItem value={"temp"}>Temperature</MenuItem>
                     </Select>
 
-                     <LineChart width={0.9 * this.props.width} height={300} data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
+                     <LineChart width={this.props.width-150} height={300} data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
 
                         <XAxis dataKey="time" />
                         <YAxis />

@@ -1,6 +1,10 @@
-import React, { Component } from 'react';
+import React from 'react';
 import './LoaderScreen.css';
 
-const LoaderScreen = props => <div className="LoaderScreen">fetching data...</div>
+const LoaderScreen = props => 
+
+<div className="LoaderScreen">
+<div class="loader"></div>
+fetching data...</div>
 
 export default LoaderScreen;

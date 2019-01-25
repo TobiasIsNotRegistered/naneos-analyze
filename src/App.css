@@ -1,6 +1,96 @@
 :root{
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0 !important;
+  padding: 0;
+  
+  background:
+  /* top, transparent black, faked with gradient */ 
+  linear-gradient(
+    rgba(0, 0, 0, 0.4), 
+    rgba(0, 0, 0, 0.7)
+  ),
+  /* bottom, image */
+  url("img/bg_welcome.jpg");  
 }
+
+.main{
+  padding: 0;
+  margin: 0;
+  position: relative;
+  height: 100vh;   
+}
+
+.main_Welcome{
+  margin: 25px;
+  padding: 5px; 
+ 
+  /*
+  background-image: url("img/bg_welcome.jpg");
+  background-repeat:no-repeat;
+  background-size:cover;
+  */
+}
+
+.main_Welcome_header{
+  margin: 25px;
+  padding: 5px; 
+  overflow: auto
+}
+
+.main_Welcome_header_lhs{
+  width: 50%;
+  margin: 0;
+  float: left;
+}
+
+.main_Welcome_header_rhs{
+  width: 50%;
+  margin: 0;
+  float:right;
+  overflow: auto;
+}
+
+.main_Welcome_containter{
+  width: 100%;
+    
+    overflow: hidden;
+}
+
+.main_Welcome_epContainer{
+  min-width: 300px;
+  width: 45%;
+  float:left; /* add this */
+
+  padding: 25px;
+
+}
+
+.main_Welcome_lastReceived{
+  margin-left: 25px;
+  width: 45%;
+
+  float: left; /* add this */
+}
+
+.main_Welcome_ep {
+  min-width: 80px;
+  width: 45%;
+
+  padding: 5px;
+}
+
+.main_Welcome_epDetails{
+
+}
+
+.main--Welcome_btnLogout{
+float: right;
+}
+
+.main_Welcome_epDetails_btn{
+
+}
+
 
 
 
