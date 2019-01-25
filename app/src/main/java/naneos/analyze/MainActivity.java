@@ -46,6 +46,15 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -68,8 +77,8 @@ public class MainActivity extends AppCompatActivity {
     protected DrawerLayout mDrawerLayout;
     protected TextView tv_amountOfLocalData;
     protected TextView drawer_textfield_email;
-    protected  TextView tv_main_status;
-    protected  TextView tv_main_status_scanning;
+    protected TextView tv_main_status;
+    protected TextView tv_main_status_scanning;
     protected TextView tv_main_status_syncing;
 
     //data
@@ -77,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private List<DataListPerDevice> listPerDeviceMetaList = new ArrayList<DataListPerDevice>();
     private ArrayAdapter adapter;
     public static NaneosBleDataBroadcastReceiver bleDataReceiver;
+    private ArrayList listOfDevicesForUserFromDB;
 
     //db
     private FirebaseFirestore db;
@@ -96,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
     private int secondsSinceLastObjectSynced;
     public Handler updateAssertScanStatusHandler;
     public Handler updateAssertSyncStatusHandler;
+    public long timeSinceLastProceedWithCurrentAccount;
 
     //LE-Scanner
     protected BluetoothAdapter mBluetoothAdapter;
@@ -210,17 +221,17 @@ public class MainActivity extends AppCompatActivity {
         });
 
         /* ******* TIMERS FOR SCHEDULED STUFF (SYNCING TO DB, ASSERTING SCANNING STATUS) ************* */
-        updateAssertScanStatusHandler = new Handler(){
-            public void handleMessage(Message msg){
-                if(msg.what == 0){
+        updateAssertScanStatusHandler = new Handler() {
+            public void handleMessage(Message msg) {
+                if (msg.what == 0) {
                     tv_main_status_scanning.setText(msg.obj.toString());
                 }
             }
         };
 
         updateAssertSyncStatusHandler = new Handler() {
-            public void handleMessage(Message msg){
-                if(msg.what == 0){
+            public void handleMessage(Message msg) {
+                if (msg.what == 0) {
                     tv_main_status_syncing.setText(msg.obj.toString());
                 }
             }
@@ -234,7 +245,7 @@ public class MainActivity extends AppCompatActivity {
                 secondsSinceLastObjectSynced++;
                 updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: in Progress - Time since last sync: " + secondsSinceLastObjectSynced).sendToTarget();
                 updateAssertScanStatusHandler.obtainMessage(0, "Scanning: in Progress - Time since last object: " + secondsSinceLastObjectReceived).sendToTarget();
-                }
+            }
         };
 
         startAssertScanningStatusWithTimer();
@@ -270,13 +281,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // start BLEtimer task here
-
         startBLETimer();
 
         Log.d("NaneosMainActivity", "onCreate finished!");
     }
-
-
 
 
     @Override
@@ -292,6 +300,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // TODO: don't you need to wait until premissions are granted somehow?
+        //TODO: Answer from Tobi: Permissions werden in der SplashScreenActivity abgefragt. Die SplashScreenActivity startet die LoginActivity, falls Permission-Antworten kommen (momentan auch bei negativer Antwort).
+        //TODO: Die Loginactivty startet dann wiederum die MainActivity, falls das Login gültig war. Das bedeutet, zu diesem Zeitpunkt haben wir bereits alle Permissions & Daten
 
         mAuth = FirebaseAuth.getInstance();
         if (mAuth.getCurrentUser() == null) {
@@ -301,24 +311,70 @@ public class MainActivity extends AppCompatActivity {
             currentUser = mAuth.getCurrentUser();
             Long tsLastLogin = currentUser.getMetadata().getLastSignInTimestamp();
             checkIfUserWantsToProceedWithCurrentAccount(tsLastLogin);
+            getListOfDevicesFromDB();
+            attemptLoadingAppStatus();
 
-            if(pm.isBluetoothEnabled()) {
+            if (pm.isBluetoothEnabled()) {
                 initateBLE();
             }
         }
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        attemptSavingAppStatus();
+    }
+
+    public void attemptSavingAppStatus() {
+        try {
+            FileOutputStream fos = mainContext.openFileOutput("NaneosAppStatus.txt", Context.MODE_PRIVATE);
+            ObjectOutputStream os = new ObjectOutputStream(fos);
+            os.writeObject(timeSinceLastProceedWithCurrentAccount);
+            os.close();
+            fos.close();
+        } catch (IOException e) {
+            Log.d("Naneos", "Unable to write to the TestFile.txt");
+        }
+        Log.d("Naneose", "Write to TestFile.txt file.");
+    }
+
+    public void attemptLoadingAppStatus() {
+        try {
+            FileInputStream fis = mainContext.openFileInput("NaneosAppStatus.txt");
+            ObjectInputStream is = new ObjectInputStream(fis);
+            timeSinceLastProceedWithCurrentAccount = is.read();
+            is.close();
+            fis.close();
+        } catch (IOException e) {
+            Log.e("Naneos", "Unable to read to the TestFile.txt file.");
+        }
+        Log.d("Naneos", "Read to TestFile.txt file.");
+    }
+
+
     public void checkIfUserWantsToProceedWithCurrentAccount(Long tsLastLogin) {
         Long tsLong = System.currentTimeMillis();
         String tsNow = tsLong.toString();
+        Long timeSinceLastProceed;
 
-        Long deltaT = (Long.valueOf(tsNow) - tsLastLogin);
+        Long deltaT = (tsLong - tsLastLogin);
+
+        if(timeSinceLastProceedWithCurrentAccount > 0){
+            timeSinceLastProceed = tsLong - timeSinceLastProceedWithCurrentAccount;
+            Log.d("Naneos", "Time since last Proceed (s): " + timeSinceLastProceed/1000);
+        }else{
+            timeSinceLastProceed = 0L;
+        }
+
+
+
         Long deltaTinSeconds = deltaT / 1000;
 
-        Toast.makeText(mainContext, "Weclome, " + currentUser.getEmail() + "! \n" + " Time since last login: " + deltaTinSeconds + "s", Toast.LENGTH_SHORT).show();
+        Toast.makeText(mainContext, "Welcome, " + currentUser.getEmail() + "! \n" + " Time since last login: " + deltaTinSeconds + "s", Toast.LENGTH_SHORT).show();
 
         //900s = 15 min --> only asks in onResume, not while App is active
-        if (deltaTinSeconds > 3600) {
+        if (deltaTinSeconds > 3600 && timeSinceLastProceed > 3600) {
 
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Proceed with current account?");
@@ -327,7 +383,7 @@ public class MainActivity extends AppCompatActivity {
             builder.setPositiveButton("Proceed", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-
+                    timeSinceLastProceedWithCurrentAccount = System.currentTimeMillis();
                 }
             });
             builder.setNegativeButton("Logout", new DialogInterface.OnClickListener() {
@@ -374,6 +430,82 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    //get List of devices for the connected user from DB
+    //this is used in order to update the Meta-List "Devices" in the DB, if a new device is connected
+    //the Meta_List "Devices" will be used by the web-application in order to be able to download individual data instead of all data at once
+    private void getListOfDevicesFromDB() {
+        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myDbRef = database.getReference();
+
+        DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child("devices");
+        dataRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                Log.d("Naneos", "getListOfDevicesFromDB: dataSnapshot: " + dataSnapshot.getValue());
+                listOfDevicesForUserFromDB = new ArrayList();
+                ArrayList<Long> data = (ArrayList) dataSnapshot.getValue();
+                if (data != null) {
+                    for (int i = 0; i < data.size(); i++) {
+                        listOfDevicesForUserFromDB.add(data.get(i) != null ? data.get(i).intValue() : null);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    private void checkIfUpdateOfDeviceMetaListIsNecessary() {
+
+        //case 0: no metaList exists for this user
+        if (listOfDevicesForUserFromDB == null || listOfDevicesForUserFromDB.size() < 1) {
+            ArrayList _temp = new ArrayList();
+            for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
+                _temp.add(listPerDeviceMetaList.get(i).getSerial());
+            }
+            updateDeviceMetaListOnRTDB(_temp);
+            return;
+        }
+
+        //case 1: metaLists exists but doesn't contain all devices which we are receiving from --> update list
+        if (listOfDevicesForUserFromDB != null && listOfDevicesForUserFromDB.size() > 0) {
+            for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
+                Log.d("Naneos", "listOfDevicesForUserFromDB: Test: " + listOfDevicesForUserFromDB.get(0).getClass());
+                if (!((ArrayList) listOfDevicesForUserFromDB).contains(listPerDeviceMetaList.get(i).getSerial())) {
+                    Log.d("Naneos", "Found Serial on Device but not on DBList: " + listPerDeviceMetaList.get(i).getSerial());
+                    listOfDevicesForUserFromDB.add(listPerDeviceMetaList.get(i).getSerial());
+                    updateDeviceMetaListOnRTDB(listOfDevicesForUserFromDB);
+                } else {
+                    Log.d("Naneos", "No Update of DeviceMetaList necessary!");
+                }
+            }
+        }
+
+    }
+
+    private void updateDeviceMetaListOnRTDB(ArrayList list) {
+        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myDbRef = database.getReference();
+
+        DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child("devices");
+
+        dataRef.setValue(list).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Log.d("Naneos", "updateDeviceMetaList - success!");
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.d("Naneos", "updateDeviceMetaList - failure! " + e.getMessage());
+            }
+        });
+    }
+
+
     private void SyncDataToRealtimeDB() {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myDbRef = database.getReference();
@@ -392,7 +524,7 @@ public class MainActivity extends AppCompatActivity {
                     final DataListPerDevice currentDataList = listPerDeviceMetaList.get(i);
 
                     //only upload if new Data is apparent
-                    if(dataToSync != null && dataToSync != lastSyncedDataObject) {
+                    if (dataToSync != null && dataToSync != lastSyncedDataObject) {
 
                         if (dataToSync.getSerial() != 0) {
                             /** We need to replace points with commas to store it in firebase, see here: https://stackoverflow.com/questions/31904123/good-way-to-replace-invalid-characters-in-firebase-keys **/
@@ -405,6 +537,7 @@ public class MainActivity extends AppCompatActivity {
                                     dataToSync.setStoredInDB(true);
                                     adapter.notifyDataSetChanged();
                                     lastSyncedDataObject = dataToSync;
+                                    checkIfUpdateOfDeviceMetaListIsNecessary();
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
                                 @Override
@@ -414,20 +547,20 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
                         }
-                    }else{
+                    } else {
                         updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: Error - no new Data received!").sendToTarget();
                         return;
                     }
 
                 }
-            }else{
+            } else {
                 updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: No Data available").sendToTarget();
             }
         }
     }
 
-    private void startAssertScanningStatusWithTimer(){
-        if(timerAssertScanStatus != null){
+    private void startAssertScanningStatusWithTimer() {
+        if (timerAssertScanStatus != null) {
             return;
         }
         timerAssertScanStatus = new Timer();
@@ -436,8 +569,8 @@ public class MainActivity extends AppCompatActivity {
         timerAssertScanStatus.scheduleAtFixedRate(timerAssertScanStatusTask, 0, freq);
     }
 
-    private void stopAssertScanningStatusWithTimer(){
-        if(timerAssertScanStatus != null){
+    private void stopAssertScanningStatusWithTimer() {
+        if (timerAssertScanStatus != null) {
             timerAssertScanStatus.cancel();
             timerAssertScanStatus = null;
         }
@@ -451,13 +584,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         timerDBSync = new Timer();
-        int freq = 60000; //60000 = 1 min
+        int freq = 5000; //60000 = 1 min
 
         timerDBSyncTask = new TimerTask() {
             @Override
             public void run() {
                 //SyncDataToFirestore();
                 SyncDataToRealtimeDB();
+                Log.d("Naneos", "Invoked 'SyncDataToRealtimeDB' ....");
             }
         };
 
@@ -465,7 +599,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopSyncingWithTimer() {
-        if(timerDBSync != null){
+        if (timerDBSync != null) {
             timerDBSync.cancel();
             timerDBSync = null;
         }
@@ -553,8 +687,6 @@ public class MainActivity extends AppCompatActivity {
         mLEScanner.startScan(filters, builderScanSettings.build(), mScanCallback);
 
 
-
-
         return (mBluetoothAdapter != null);
     }
 
@@ -569,7 +701,6 @@ public class MainActivity extends AppCompatActivity {
         final ScanSettings.Builder builderScanSettings = new ScanSettings.Builder();
         builderScanSettings.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
         builderScanSettings.setReportDelay(0);
-
 
 
         System.out.println("creating a new timer");
@@ -594,6 +725,8 @@ public class MainActivity extends AppCompatActivity {
         String date = DateFormat.format("dd-MM-yyyy hh:mm:ss", cal).toString();
         return date;
     }
+
+
 }
 
 

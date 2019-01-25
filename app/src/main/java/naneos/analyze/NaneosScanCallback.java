@@ -185,5 +185,6 @@ public class NaneosScanCallback extends ScanCallback {
         });
 
         receiveAndDeserializeBleData.start();
+
     }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 //this class holds a list called 'store' which stores the dataObjects according to their serial/macAddress
 //this enables receiving data from multiple devices and storing them in seperate lists
+//for every device which sends data another instance of this object should be created. Thus, as many instances of this class exist, from as many devices we received data
 //TODO: after X amount of dataObjects per serial, a syncOperation with the server can be issued
 public class DataListPerDevice {
 
@@ -22,6 +23,7 @@ public class DataListPerDevice {
         store = new ArrayList<>();
         amountOfSyncedObjects = 0;
     }
+    
 
     @Override
     public String toString() {
