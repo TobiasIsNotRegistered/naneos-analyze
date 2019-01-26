@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Brush, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Brush, ReferenceLine, ScatterChart, Scatter } from 'recharts';
 import { Select, MenuItem } from '@material-ui/core/';
+import moment from 'moment';
+
 
 
 class ChartContainer extends Component {
@@ -17,6 +19,7 @@ class ChartContainer extends Component {
     componentDidMount() {
     }
 
+ 
    
 
     render() {
@@ -52,17 +55,21 @@ class ChartContainer extends Component {
                         <MenuItem value={"temp"}>Temperature</MenuItem>
                     </Select>
 
-                    <LineChart width={this.props.width-150} height={300} data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
+     
 
+
+                    <LineChart width={this.props.width-150} height={300} data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
                         <XAxis dataKey="time" />
                         <YAxis />
                         <CartesianGrid strokeDasharray="3 3" />
-                        <Tooltip />
+                        <Tooltip formatter={(value) => new Intl.NumberFormat('en').format(value)}/>
                         <Legend />
                         <Brush></Brush>
                         <ReferenceLine y={9800} label="Max" stroke="red" />
                         <Line type="monotone" dataKey={this.state.currentDataKey1} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} />
                     </LineChart>
+
+
 
                     <Select
                         value={this.state.currentDataKey2}
@@ -85,7 +92,7 @@ class ChartContainer extends Component {
                         <XAxis dataKey="time" />
                         <YAxis />
                         <CartesianGrid strokeDasharray="3 3" />
-                        <Tooltip />
+                        <Tooltip formatter={(value) => new Intl.NumberFormat('en').format(value)}/>
                         <Legend />
                         <ReferenceLine y={9800} label="Max" stroke="red" />
                         <Line type="monotone" dataKey={this.state.currentDataKey2} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} />

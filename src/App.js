@@ -158,7 +158,7 @@ class App extends Component {
 
             if (device) {
               let dataForChart = snap_dataObject.val();
-              dataForChart.time = snap_dataObject.val().date.hours.toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
+              dataForChart.time = (snap_dataObject.val().date.hours).toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
 
               let _tempArray = this.state.chartData;
 
@@ -178,7 +178,8 @@ class App extends Component {
         snap_dataPerDay.forEach(snap_dataObject => {
           dataPerDay.time = snap_dataObject.val().date.time;
           let dataForChart = snap_dataObject.val();
-          dataForChart.time = snap_dataObject.val().date.hours.toString() + ":" + snap_dataObject.val().date.minutes.toString() + ":" + snap_dataObject.val().date.seconds.toString();
+          var date = new Date(snap_dataObject.val().date.time); 
+          dataForChart.time = date.toLocaleTimeString(); 
           dataPerDay.data.push(dataForChart);
         })
 
