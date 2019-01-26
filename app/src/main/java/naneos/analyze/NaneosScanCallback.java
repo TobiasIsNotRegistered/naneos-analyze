@@ -38,7 +38,7 @@ public class NaneosScanCallback extends ScanCallback {
     private Activity mainActivity;
 
 
-    public NaneosScanCallback(Activity activity) {
+    NaneosScanCallback(Activity activity) {
         this.mainActivity = activity;
     }
 
@@ -87,7 +87,7 @@ public class NaneosScanCallback extends ScanCallback {
                         newData.setDate(Calendar.getInstance().getTime());
                         newData.setID(currentDataIndex++);
                         newData.setMacAddress(device.getAddress());
-//                        newData.setRSSI(RSSI);
+                        newData.setRSSI(RSSI);
 
                         // 1. remember it
                         lastreceived = msg;
@@ -158,9 +158,7 @@ public class NaneosScanCallback extends ScanCallback {
                                             newData.setNumberC(number);
                                             break;
                                     }
-
                                 }
-
                             } catch (NumberFormatException e) {
                                 System.out.println("number format exception caught" + buffer);
                             }
@@ -172,12 +170,11 @@ public class NaneosScanCallback extends ScanCallback {
                         if (msg.charAt(msg.length() - 1) == 'S')
                             buffer = buffer + 'S';
 
-
-
-
                         //Send data to mainAcitivity by making NaneosDataObject Serializable
                         Intent intent = new Intent();
-                        intent.setAction(MainActivity.bleDataReceiver.SEND_BLE_DATA);
+                        // the line below gives a lint warning "static member accessed via instance reference"
+                        //intent.setAction(MainActivity.bleDataReceiver.SEND_BLE_DATA);
+                        intent.setAction(MainActivity.NaneosBleDataBroadcastReceiver.SEND_BLE_DATA);
                         intent.putExtra("newDataObject", newData);
                         mainActivity.sendBroadcast(intent);
                     }

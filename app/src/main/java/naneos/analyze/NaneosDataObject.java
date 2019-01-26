@@ -21,6 +21,7 @@ public class NaneosDataObject implements Serializable {
     private float diameter;
     private float numberC;
     private float LDSA;
+    private int RSSI;
 
     //meta
     private boolean isStoredInDB;
@@ -29,7 +30,7 @@ public class NaneosDataObject implements Serializable {
 
     //empty constructor
     //necessary for firebase!
-    public NaneosDataObject(){
+    NaneosDataObject(){
     }
 
      @Override
@@ -39,19 +40,22 @@ public class NaneosDataObject implements Serializable {
     }
 
     /** GETTER & SETTER **/
-    public int getID() {
+    private int getID() {
         return ID;
     }
 
-    public void setID(int ID) {
+    void setID(int ID) {
         this.ID = ID;
     }
+
+    int getRSSI() {return RSSI; }
+    void setRSSI(int RSSI) {this.RSSI = RSSI;}
 
     public Date getDate() {
         return date;
     }
 
-    public String getDateAsFirestoreKey(){
+    String getDateAsFirestoreKey(){
         String dayOfTheWeek = (String) DateFormat.format("EEEE", date); // Thursday
         String day          = (String) DateFormat.format("dd",   date); // 20
         String monthString  = (String) DateFormat.format("MMM",  date); // Jun
@@ -65,27 +69,27 @@ public class NaneosDataObject implements Serializable {
         this.date = date;
     }
 
-    public float getTemp() {
+    float getTemp() {
         return temp;
     }
 
-    public void setTemp(float temp) {
+    void setTemp(float temp) {
         this.temp = temp;
     }
 
-    public float getHumidity() {
+    float getHumidity() {
         return humidity;
     }
 
-    public void setHumidity(float humidity) {
+    void setHumidity(float humidity) {
         this.humidity = humidity;
     }
 
-    public float getBatteryVoltage() {
+    float getBatteryVoltage() {
         return batteryVoltage;
     }
 
-    public void setBatteryVoltage(float batteryVoltage) {
+    void setBatteryVoltage(float batteryVoltage) {
         this.batteryVoltage = batteryVoltage;
     }
 
@@ -93,31 +97,31 @@ public class NaneosDataObject implements Serializable {
         return error;
     }
 
-    public void setError(float error) {
+    void setError(float error) {
         this.error = error;
     }
 
-    public float getDiameter() {
+    float getDiameter() {
         return diameter;
     }
 
-    public void setDiameter(float diameter) {
+    void setDiameter(float diameter) {
         this.diameter = diameter;
     }
 
-    public float getNumberC() {
+    float getNumberC() {
         return numberC;
     }
 
-    public void setNumberC(float numberC) {
+    void setNumberC(float numberC) {
         this.numberC = numberC;
     }
 
-    public float getLDSA() {
+    float getLDSA() {
         return LDSA;
     }
 
-    public void setLDSA(float LDSA) {
+    void setLDSA(float LDSA) {
         this.LDSA = LDSA;
     }
 
@@ -125,23 +129,23 @@ public class NaneosDataObject implements Serializable {
         return isStoredInDB;
     }
 
-    public void setStoredInDB(boolean storedInDB) {
+    void setStoredInDB(boolean storedInDB) {
         isStoredInDB = storedInDB;
     }
 
-    public int getSerial() {
+    int getSerial() {
         return serial;
     }
 
-    public void setSerial(int serial) {
+    void setSerial(int serial) {
         this.serial = serial;
     }
 
-    public String getMacAddress() {
+    String getMacAddress() {
         return macAddress;
     }
 
-    public void setMacAddress(String macAddress) {
+    void setMacAddress(String macAddress) {
         this.macAddress = macAddress;
     }
 }

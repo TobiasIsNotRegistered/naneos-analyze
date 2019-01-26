@@ -1,5 +1,7 @@
 package naneos.analyze;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 
 //this class holds a list called 'store' which stores the dataObjects according to their serial/macAddress
@@ -14,12 +16,12 @@ public class DataListPerDevice {
     private NaneosDataObject averagedData;
     private NaneosDataObject aggregatedPreviousData;
 
-    public ArrayList<NaneosDataObject> store;
-    public int amountOfSyncedObjects;
+    ArrayList<NaneosDataObject> store;
+    int amountOfSyncedObjects;
 
 
     //macAddress is always available, serial not!
-    public DataListPerDevice() {
+    DataListPerDevice() {
         store = new ArrayList<>();
         amountOfSyncedObjects = 0;
     }
@@ -28,7 +30,7 @@ public class DataListPerDevice {
     @Override
     public String toString() {
         return "Serial: " + getSerial()
-                + "\n" + "macAddress: " + getMacAddress()
+                + "\n" + "Mac: " + getMacAddress() + "  RSSI: " + aggregatedPreviousData.getRSSI()
                 + "\n" + "received Data: " + store.size()
                 + "\n" + "amountOfSyncedData: " + amountOfSyncedObjects
                 + "\n"
@@ -40,7 +42,7 @@ public class DataListPerDevice {
     }
 
     public void add(NaneosDataObject objectToAdd) {
-        /** case0: empty list, first item is being added **/
+        // case0: empty list, first item is being added
         if (store.size() == 0) {
             this.macAddress = objectToAdd.getMacAddress();
             if (objectToAdd.getSerial() != 0) {
@@ -50,7 +52,8 @@ public class DataListPerDevice {
             averagedData = objectToAdd;
             aggregatedPreviousData = objectToAdd;
 
-            /** case1: macAddress is set, size > 0 **/
+
+            // case1: macAddress is set, size > 0
             //check precondition, dataObject's macAddress must be the same as this lists macAddress
         } else if (!objectToAdd.getMacAddress().equals(macAddress)) {
             throw new IllegalArgumentException("DataListPerDevice: you tried to add a dataObject with macAddress: " + objectToAdd.getMacAddress() + " to this list, which is reserved for dataObjects with macAddress: " + macAddress);
@@ -71,9 +74,10 @@ public class DataListPerDevice {
     /**
      * set previous data if new data is available
      **/
-    public void copyMissingValuesFromPreviousDataObjects(NaneosDataObject objectToAdd) {
+    private void copyMissingValuesFromPreviousDataObjects(NaneosDataObject objectToAdd) {
 
         aggregatedPreviousData.setLDSA(objectToAdd.getLDSA());
+        aggregatedPreviousData.setRSSI(objectToAdd.getRSSI());
 
         if(aggregatedPreviousData.getSerial() != 0){
             objectToAdd.setSerial(aggregatedPreviousData.getSerial());
@@ -120,11 +124,11 @@ public class DataListPerDevice {
         return averagedData;
     }
 
-    public int getSerial() {
+    int getSerial() {
         return serial;
     }
 
-    public void setSerial(int serial) {
+    private void setSerial(int serial) {
         this.serial = serial;
         for (int i = 0; i < store.size(); i++) {
             if (store.get(i).getSerial() == 0 && serial != 0) {
@@ -133,7 +137,7 @@ public class DataListPerDevice {
         }
     }
 
-    public String getMacAddress() {
+    String getMacAddress() {
         return macAddress;
     }
 
