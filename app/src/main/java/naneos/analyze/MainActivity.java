@@ -1,5 +1,8 @@
 package naneos.analyze;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -13,10 +16,14 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import static android.content.Context.NOTIFICATION_SERVICE;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -118,6 +125,14 @@ public class MainActivity extends AppCompatActivity {
 
 
     /********* LIFECYCLE ************/
+    // onCreate()
+    // onStart()   <----------onRestart()
+    // onResume() <----------      |
+    // activity running      |     |
+    // onPause()  -----------      |
+    // onStop()  ------------------
+    // onDestroy()
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -257,6 +272,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         /* ************************************* */
+        // todo: this function would tell if something is wrong, auto-retry?
         DatabaseReference connectedRef = FirebaseDatabase.getInstance().getReference(".info/connected");
         connectedRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -283,6 +299,9 @@ public class MainActivity extends AppCompatActivity {
         // start BLEtimer task here
         startBLETimer();
 
+        // MF added: start channel for notifications
+        createNotificationChannel();
+
         Log.d("NaneosMainActivity", "onCreate finished!");
     }
 
@@ -290,6 +309,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        // TODO: I think this is the wrong place for looking for permissions. We should
+        // get permissions at onCreate!?
 
         PermissionManager pm = new PermissionManager(mainContext);
         pm.requestLocation();
@@ -318,12 +340,45 @@ public class MainActivity extends AppCompatActivity {
                 initateBLE();
             }
         }
+
+        // MF added a notification here
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, getString(R.string.channel_ID))
+                .setSmallIcon(R.drawable.common_google_signin_btn_icon_light_normal)
+                .setContentTitle("naneos")
+                .setContentText("naneos web upload running")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+// notificationId is a unique int for each notification that you must define
+        notificationManager.notify(1, mBuilder.build());
+
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         attemptSavingAppStatus();
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.cancelAll();
+    }
+
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_ID);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_MAX;
+            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_ID), name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     public void attemptSavingAppStatus() {
@@ -584,7 +639,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         timerDBSync = new Timer();
-        int freq = 5000; //60000 = 1 min
+        int freq = 60000; //60000 = 1 min
 
         timerDBSyncTask = new TimerTask() {
             @Override

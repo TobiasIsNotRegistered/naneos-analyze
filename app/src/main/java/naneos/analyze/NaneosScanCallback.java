@@ -87,6 +87,7 @@ public class NaneosScanCallback extends ScanCallback {
                         newData.setDate(Calendar.getInstance().getTime());
                         newData.setID(currentDataIndex++);
                         newData.setMacAddress(device.getAddress());
+//                        newData.setRSSI(RSSI);
 
                         // 1. remember it
                         lastreceived = msg;

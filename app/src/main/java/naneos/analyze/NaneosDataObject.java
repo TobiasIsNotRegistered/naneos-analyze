@@ -33,6 +33,7 @@ public class NaneosDataObject implements Serializable {
     }
 
      @Override
+     // todo: add RSSI value here
     public String toString() {
         return "ID: " + getID() + " /LDSA: " + getLDSA() + "\t" + "Serial: " + getSerial() + "/ is Synced: " + isStoredInDB;
     }
