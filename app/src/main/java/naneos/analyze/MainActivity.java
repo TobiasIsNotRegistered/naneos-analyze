@@ -372,7 +372,7 @@ public class MainActivity extends AppCompatActivity {
             CharSequence name = getString(R.string.channel_ID);
             String description = getString(R.string.channel_description);
             int importance = NotificationManager.IMPORTANCE_MAX;
-            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_ID), name, importance);
+            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_ID), name, NotificationManager.IMPORTANCE_MAX);
             channel.setDescription(description);
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
@@ -571,7 +571,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         } else {
             if (listPerDeviceMetaList.size() > 0) {
-                /** sync data for each list of devices available **/
+                // sync data for each list of devices available
                 for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
                     //retrieve lastObject
                     //TODO: retrieve averaged Data instead of lastObject!
@@ -582,10 +582,23 @@ public class MainActivity extends AppCompatActivity {
                     if (dataToSync != null && dataToSync != lastSyncedDataObject) {
 
                         if (dataToSync.getSerial() != 0) {
-                            /** We need to replace points with commas to store it in firebase, see here: https://stackoverflow.com/questions/31904123/good-way-to-replace-invalid-characters-in-firebase-keys **/
+                            // We need to replace points with commas to store it in firebase, see here: https://stackoverflow.com/questions/31904123/good-way-to-replace-invalid-characters-in-firebase-keys
                             DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
+
+                            // TODO: replace dataToSync with a NaneosSyncObject which has less data inside!
+                            //NaneosDataSyncObject naneosDataSyncObject = new NaneosDataSyncObject(dataToSync);
+                            NaneosDataSyncObject naneosDataSyncObject = new NaneosDataSyncObject();
+                            naneosDataSyncObject.setDate(dataToSync.getDate());
+                            naneosDataSyncObject.setDiameter(dataToSync.getDiameter());
+                            naneosDataSyncObject.setError(dataToSync.getError());
+                            naneosDataSyncObject.setHumidity(dataToSync.getHumidity());
+                            naneosDataSyncObject.setLDSA(dataToSync.getLDSA());
+                            naneosDataSyncObject.setNumberC(dataToSync.getNumberC());
+                            naneosDataSyncObject.setTemp(dataToSync.getTemp());
+
                             dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
+                            //dataRef.setValue(naneosDataSyncObject).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
                                 public void onSuccess(Void aVoid) {
                                     secondsSinceLastObjectSynced = 0;
                                     currentDataList.amountOfSyncedObjects++;
@@ -639,7 +652,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         timerDBSync = new Timer();
-        int freq = 60000; //60000 = 1 min
+        int freq = 5000; // 60000; //60000 = 1 min
 
         timerDBSyncTask = new TimerTask() {
             @Override
@@ -674,13 +687,13 @@ public class MainActivity extends AppCompatActivity {
             //if new data is received, reset the timer
             secondsSinceLastObjectReceived = 0;
 
-            /** case1: metaList is empty  **/
+            // case1: metaList is empty
             if (listPerDeviceMetaList.size() == 0) {
                 DataListPerDevice newList = new DataListPerDevice();
                 newList.add(currentData);
                 listPerDeviceMetaList.add(newList);
             } else {
-                /** case2: metaList has at least one entry **/
+                // case2: metaList has at least one entry
                 boolean deviceKnown = false;
                 //check if there is a 'DataListPerDevice' for this device
                 for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
