@@ -372,7 +372,7 @@ public class MainActivity extends AppCompatActivity {
             CharSequence name = getString(R.string.channel_ID);
             String description = getString(R.string.channel_description);
             int importance = NotificationManager.IMPORTANCE_MAX;
-            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_ID), name, NotificationManager.IMPORTANCE_MAX);
+            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_ID), name, NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription(description);
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
@@ -585,19 +585,9 @@ public class MainActivity extends AppCompatActivity {
                             // We need to replace points with commas to store it in firebase, see here: https://stackoverflow.com/questions/31904123/good-way-to-replace-invalid-characters-in-firebase-keys
                             DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child(String.valueOf(dataToSync.getSerial())).child(dataToSync.getDateAsFirestoreKey()).push();
 
-                            // TODO: replace dataToSync with a NaneosSyncObject which has less data inside!
-                            //NaneosDataSyncObject naneosDataSyncObject = new NaneosDataSyncObject(dataToSync);
-                            NaneosDataSyncObject naneosDataSyncObject = new NaneosDataSyncObject();
-                            naneosDataSyncObject.setDate(dataToSync.getDate());
-                            naneosDataSyncObject.setDiameter(dataToSync.getDiameter());
-                            naneosDataSyncObject.setError(dataToSync.getError());
-                            naneosDataSyncObject.setHumidity(dataToSync.getHumidity());
-                            naneosDataSyncObject.setLDSA(dataToSync.getLDSA());
-                            naneosDataSyncObject.setNumberC(dataToSync.getNumberC());
-                            naneosDataSyncObject.setTemp(dataToSync.getTemp());
-
-                            dataRef.setValue(dataToSync).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            //dataRef.setValue(naneosDataSyncObject).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            // replace dataToSync with a NaneosSyncObject which has less data inside!
+                            NaneosDataSyncObject naneosDataSyncObject = new NaneosDataSyncObject(dataToSync);
+                            dataRef.setValue(naneosDataSyncObject).addOnSuccessListener(new OnSuccessListener<Void>() {
                                     @Override
                                 public void onSuccess(Void aVoid) {
                                     secondsSinceLastObjectSynced = 0;
@@ -606,12 +596,14 @@ public class MainActivity extends AppCompatActivity {
                                     adapter.notifyDataSetChanged();
                                     lastSyncedDataObject = dataToSync;
                                     checkIfUpdateOfDeviceMetaListIsNecessary();
+                                    Log.d("Firestore", "success");
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
                                     dataToSync.setStoredInDB(false);
                                     updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: Error - Could not send Data to DB!").sendToTarget();
+                                    Log.d("Firestore", "fail");
                                 }
                             });
                         }

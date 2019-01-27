@@ -21,6 +21,8 @@ public class NaneosDataSyncObject implements Serializable {
     private float numberC;
     private float LDSA;
     private float batteryVoltage;
+    private int serial;
+    // todo: serial should not be necessary; but if I don't include it, the webpae doesn't show it!
 
     // stuff that is in NaneosDataObject but not in NaneosDataSyncObject:
     //private int RSSI;
@@ -29,18 +31,14 @@ public class NaneosDataSyncObject implements Serializable {
 
     //meta
     //private boolean isStoredInDB;
-    //private int serial;
     //private String macAddress;
 
-    //constructor
-
-
+    //empty constructor
     //necessary for firebase!
     NaneosDataSyncObject() {
-
     }
 
-    /*
+
     NaneosDataSyncObject(NaneosDataObject naneosDataObject){
         date = naneosDataObject.getDate();
         temp = naneosDataObject.getTemp();
@@ -50,28 +48,23 @@ public class NaneosDataSyncObject implements Serializable {
         numberC = naneosDataObject.getNumberC();
         LDSA = naneosDataObject.getLDSA();
         batteryVoltage = naneosDataObject.getBatteryVoltage();
+        serial = naneosDataObject.getSerial();
         Log.d("NaneosSync", this.toString());
-    }*/
+    }
+
+
 
     @Override
+    // todo: is this necessary?
     public String toString() {
         return "LDSA: " + getLDSA() + "T: " + getTemp() + "RH: " + getHumidity();
     }
 
-    /** GETTER & SETTER **/
+    /** GETTERS & SETTERS **/
+
 
     public Date getDate() {
         return date;
-    }
-
-    String getDateAsFirestoreKey(){
-        String dayOfTheWeek = (String) DateFormat.format("EEEE", date); // Thursday
-        String day          = (String) DateFormat.format("dd",   date); // 20
-        String monthString  = (String) DateFormat.format("MMM",  date); // Jun
-        String monthNumber  = (String) DateFormat.format("MM",   date); // 06
-        String year         = (String) DateFormat.format("yyyy", date); // 2013
-
-        return day + "-" +  monthNumber + "-" + year;
     }
 
     public void setDate(Date date) {
@@ -126,4 +119,30 @@ public class NaneosDataSyncObject implements Serializable {
     void setLDSA(float LDSA) {
         this.LDSA = LDSA;
     }
+
+    float getBatteryVoltage() {
+        return batteryVoltage;
+    }
+
+    void setBatteryVoltage(float batteryVoltage) {
+        this.batteryVoltage = batteryVoltage;
+    }
+
+    int getSerial() {
+        return serial;
+    }
+
+    void setSerial(int serial) {
+        this.serial = serial;
+    }
+
+    /*String getDateAsFirestoreKey(){
+        String dayOfTheWeek = (String) DateFormat.format("EEEE", date); // Thursday
+        String day          = (String) DateFormat.format("dd",   date); // 20
+        String monthString  = (String) DateFormat.format("MMM",  date); // Jun
+        String monthNumber  = (String) DateFormat.format("MM",   date); // 06
+        String year         = (String) DateFormat.format("yyyy", date); // 2013
+
+        return day + "-" +  monthNumber + "-" + year;
+    }*/
 }
