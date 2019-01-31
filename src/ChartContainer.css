@@ -2,3 +2,13 @@
     float:right;
     overflow: auto
 }
+
+.chart-container-options{
+ 
+}
+
+.chart-container-options-child{
+    padding: 30px !important;
+    width: 200px;
+    
+}

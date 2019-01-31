@@ -93,7 +93,7 @@ class ChartContainer extends Component {
                 }
             }
         })
-        console.log("Registered listener on: " + dbKey + "/" + currentDevice + "/" + currentDay);
+        console.log("Registered listener for new data on: " + dbKey + "/" + currentDevice + "/" + currentDay);
         this.referencesRTDB.push(dayRef);
     }
 
@@ -101,7 +101,7 @@ class ChartContainer extends Component {
         let dbKey = this.props.email.replace(/\./g, ",");
         const dataRef = this.props.rtdb.ref(dbKey + "/" + serial);
         this.referencesRTDB.push(dataRef);
-        console.log("registered listener on: " + dataRef);
+        console.log("Registered listener for new days on: " + dataRef);
         //clear existing data before reloading it to avoid duplicates 
         //firebase handles the cache and doesn't automatically download again - should be future-proof!
         this.setState({ availableDays: [], currentDayString: "", chartIsLoading: true, });
@@ -140,9 +140,9 @@ class ChartContainer extends Component {
         })
     }
 
-    displayDataForThisDay(currentDayIndex) {
+    displayDataForThisDay() {
         this.setState({
-            dataToDisplay: this.state.availableDays[currentDayIndex].data
+            dataToDisplay: this.state.availableDays[this.state.currentDayIndex].data
         })
     }
 
@@ -171,12 +171,12 @@ class ChartContainer extends Component {
                         label="listen for new data" />
 
                     <Typography variant="h6" component="h3">
-                        ({this.props.index}) Chart Container: {this.state.dataToDisplay.length < 1440 ? (this.state.dataToDisplay.length + "Elements") : (this.state.dataToDisplay.length + "Elements -- WARNING: maximum reached - there might be more data on RTDB.")}
+                         Chart N°{this.props.index+1} : {this.state.dataToDisplay.length < 1440 ? (this.state.dataToDisplay.length + " records") : (this.state.dataToDisplay.length + " records -- WARNING: maximum reached - there might be more data on RTDB.")}
                     </Typography>
 
 
                     <div className="chart-container-options">
-                        <FormControl disabled={this.state.chartIsLoading}>
+                        <FormControl disabled={this.state.chartIsLoading} className="chart-container-options-child">
                             <Select
                                 value={this.state.currentDevice}
                                 onChange={(event) => { this.setState({ currentDevice: event.target.value }), this.loadDataForThisDevice(event.target.value) }}
@@ -193,26 +193,25 @@ class ChartContainer extends Component {
                             </Select>
                         </FormControl>
 
-                        {/* TODO: Find out why currentDayString isn't displayed in Select - I suspect that overwriting value with c in MenuItem is responisble for the bug. If so, possible workaround: callback function requesting currentDayIndex */}
-                        <FormControl disabled={this.state.chartIsLoading}>
+                        
+                        <FormControl disabled={this.state.chartIsLoading} className="chart-container-options-child">
                             <Select
                                 value={this.state.currentDayString}
-                                onChange={(event) => { this.setState({ currentDayString: event.target.value.day, currentDayIndex: event.target.value.i }),  this.displayDataForThisDay(event.target.value.i) }}
+                                onChange={(event, child) => {this.setState({currentDayString: event.target.value, currentDayIndex: child.props.id}) ,this.displayDataForThisDay() }}
                                 inputProps={{
                                     name: 'selectDayKey',
                                     id: 'selectDayKey',
                                 }}
                             >
                                 {this.state.availableDays.map((day, i) => {
-                                    let c = { day: day.key, i: i };
                                     return (
-                                        <MenuItem value={c}>{day.key}</MenuItem>
+                                        <MenuItem id={i} value={day.key}>{day.key}</MenuItem>
                                     )
                                 })}
                             </Select>
                         </FormControl>
 
-                        <FormControl disabled={this.state.chartIsLoading}>
+                        <FormControl disabled={this.state.chartIsLoading} className="chart-container-options-child">
                             <Select
                                 value={this.state.currentDataKey1}
                                 onChange={(event) => this.setState({ currentDataKey1: event.target.value })}
@@ -230,6 +229,7 @@ class ChartContainer extends Component {
                         </FormControl>
 
                     </div>
+
                     {!this.state.chartIsLoading ?
                         <LineChart width={this.props.width - 150} height={330} data={this.state.dataToDisplay} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
                             <XAxis dataKey="timeShort" />
