@@ -1,100 +1,106 @@
-:root{
+:root {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0 !important;
   padding: 0;
-  
-  background:
-  /* top, transparent black, faked with gradient */ 
-  linear-gradient(
-    rgba(0, 0, 0, 0.4), 
-    rgba(0, 0, 0, 0.7)
-  ),
-  /* bottom, image */
-  url("img/bg_welcome.jpg");  
+  background-image: url("img/bg_welcome.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
-.main{
+@media screen and (max-height: 100%) {
+:root{
+  
+  background-image: url("img/bg_welcome.jpg");
+  background-size: cover;
+  background-repeat: repeat-y;
+}
+}
+
+body {
+  margin: 0 !important;
+}
+
+.main {
   padding: 0;
   margin: 0;
   position: relative;
-  height: 100vh;   
+  /* - 25px because the header on the mainpage has a top-margin of 25px, which would result in an overflow */
+  height: calc(100vh - 25px);
 }
 
-.main_Welcome{
+.main_Welcome {
   margin: 25px;
-  padding: 5px; 
- 
-  /*
-  background-image: url("img/bg_welcome.jpg");
-  background-repeat:no-repeat;
-  background-size:cover;
-  */
+  padding: 5px;
 }
 
-.main_Welcome_header{
+.main_Welcome_header {
   margin: 25px;
-  padding: 5px; 
+  padding: 5px;
   overflow: auto
 }
 
-.main_Welcome_header_lhs{
+.main_Welcome_header_lhs {
   width: 50%;
   margin: 0;
   float: left;
 }
 
-.main_Welcome_header_rhs{
+.main_Welcome_header_rhs {
   width: 50%;
   margin: 0;
-  float:right;
+  float: right;
   overflow: auto;
 }
 
-.main_Welcome_containter{
+.main_Welcome_containter {
   width: 100%;
-    
-    overflow: hidden;
+  overflow: hidden;
 }
 
-.main_Welcome_epContainer{
+.main_Welcome_epContainer {
   min-width: 300px;
   width: 45%;
-  float:left; /* add this */
-
+  float: left;
+  /* add this */
   padding: 25px;
-
 }
 
-.main_Welcome_lastReceived{
+.main_Welcome_lastReceived {
   margin-left: 25px;
   width: 45%;
-
-  float: left; /* add this */
+  float: left;
+  /* add this */
 }
 
 .main_Welcome_ep {
   min-width: 80px;
   width: 45%;
-
   padding: 5px;
 }
 
-.main_Welcome_epDetails{
+.main_Welcome_epDetails {}
 
+.main_Welcome_graph {
+  margin: 25px;
+  padding: 5px;
 }
 
-.main--Welcome_btnLogout{
-float: right;
+.main--Welcome_btnLogout {
+  float: right;
 }
 
-.main_Welcome_epDetails_btn{
+.main_Welcome_epDetails_btn {}
 
+.main_Welcome_add {
+  float: right;
+  margin-right: 25px !important;
 }
-
-
-
 
 @keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

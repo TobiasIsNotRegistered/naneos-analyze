@@ -5,6 +5,7 @@ const LoaderScreen = props =>
 
 <div className="LoaderScreen">
 <div class="loader"></div>
-fetching data...</div>
+<h3>
+fetching list of devices...</h3></div>
 
 export default LoaderScreen;
