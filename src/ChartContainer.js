@@ -175,9 +175,10 @@ class ChartContainer extends Component {
                             label="listen for new data" />
                     </FormControl>
 
-                    <Typography variant="h6" component="h3">
+
+                    {/*<Typography variant="h6" component="h3">
                         Chart N°{this.props.index + 1} : {this.state.dataToDisplay.length < 1440 ? (this.state.dataToDisplay.length + " records") : (this.state.dataToDisplay.length + " records -- WARNING: maximum reached - there might be more data on RTDB.")}
-                    </Typography>
+                        </Typography>*/}
 
 
                     <div className="chart-container-options">
@@ -248,8 +249,8 @@ class ChartContainer extends Component {
                                 <YAxis width={20} />
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <Tooltip formatter={(value) => new Intl.NumberFormat('en').format(value)} />
-                                <Legend />
-                                <Brush></Brush>
+                                {/*<Legend />*/}
+                                <Brush height={20}></Brush>
                                 <ReferenceLine y={9800} label="Max" stroke="red" />
                                 <Line type="monotone" dataKey={this.state.currentDataKey1} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} dot={false} />
                             </LineChart> : <p>Please choose a device from the dropdown menu</p>)
