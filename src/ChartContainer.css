@@ -1,4 +1,9 @@
-.chart-container-float-right{
+.chart-container-float-right-btn-close{
+    float:right;
+    overflow: auto
+}
+
+.chart-container-float-right-toggle-listening{
     float:right;
     overflow: auto
 }
@@ -9,6 +14,7 @@
 
 .chart-container-options-child{
     margin: 20px !important;
+    margin-top: 0 !important;
     width: 200px;
     
 }
@@ -19,8 +25,7 @@
 
 
 @media screen and (max-width: 850px) {
-    .chart-container-options-child{
-        padding: 10px !important;
+    .chart-container-options-child{         
         width: 80vw;        
         margin-left: 0 !important;
         margin-right: 0 !important;
@@ -29,7 +34,12 @@
     .main_Welcome_graph {
       margin-left: 0px;
       margin-right: 0px;
-      padding: 5px;
-    }    
+    }   
+    
+  
+.chart-container-float-right-toggle-listening{
+    float:left;
+    overflow: auto
+}
 
   }

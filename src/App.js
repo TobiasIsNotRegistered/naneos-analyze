@@ -297,9 +297,11 @@ class App extends Component {
               }
             })}
 
+            {/* only display the "add Graph" button if list of devices exists */}
+            {(typeof this.state.availableDevices != "undefined" && this.state.availableDevices.length > 0) ? 
             <Fab color="primary" aria-label="Add" className={"main_Welcome_add"}>
               <AddIcon onClick={() => this.addGraph()} />
-            </Fab>
+            </Fab> : null }
 
           </div>
         );
