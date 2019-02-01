@@ -7,14 +7,8 @@
   background-repeat: no-repeat;
 }
 
-@media screen and (max-height: 100%) {
-:root{
-  
-  background-image: url("img/bg_welcome.jpg");
-  background-size: cover;
-  background-repeat: repeat-y;
-}
-}
+
+
 
 body {
   margin: 0 !important;
@@ -35,7 +29,7 @@ body {
 
 .main_Welcome_header {
   margin: 25px;
-  padding: 5px;
+  padding: 15px;
   overflow: auto
 }
 
@@ -48,8 +42,7 @@ body {
 .main_Welcome_header_rhs {
   width: 50%;
   margin: 0;
-  float: right;
-  overflow: auto;
+  float: right; 
 }
 
 .main_Welcome_containter {
@@ -82,7 +75,7 @@ body {
 
 .main_Welcome_graph {
   margin: 25px;
-  padding: 5px;
+  padding: 15px;
 }
 
 .main--Welcome_btnLogout {
@@ -102,5 +95,24 @@ body {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media screen and (max-width: 850px) {
+  .main_Welcome_header {
+    margin-left: 0px;
+    margin-right: 0px;
+    padding: 5px;
+    overflow: auto
+  }
+
+  .main_Welcome_graph {
+    margin-left: 0px;
+    margin-right: 0px;
+    padding: 5px;
+  }
+
+  .MuiPaper-rounded-190 {
+    border-radius: 0px !important;
   }
 }

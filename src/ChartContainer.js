@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Brush, ReferenceLine } from 'recharts';
-import { Select, MenuItem, FormControl, Button, Typography, FormControlLabel } from '@material-ui/core/';
+import { Select, MenuItem, FormControl, Button, Typography, FormControlLabel, InputLabel } from '@material-ui/core/';
 import LoaderSmall from './LoaderSmall';
 import './ChartContainer.css';
 import { IconButton } from '@material-ui/core';
@@ -45,7 +45,7 @@ class ChartContainer extends Component {
         } else {
             this.setState({ currentDevice: "" });
         }
-        this.loadDataForThisDevice(this.props.devices[0]);
+        //this.loadDataForThisDevice(this.props.devices[0]);
     }
 
     componentWillUnmount() {
@@ -75,26 +75,27 @@ class ChartContainer extends Component {
         const currentDevice = this.state.currentDevice;
         const currentDay = this.state.currentDayString;
 
-        let dbKey = this.props.email.replace(/\./g, ",");
-        //register listener on dataObjects - invokes when new data is added
-        const dayRef = this.props.rtdb.ref(dbKey + "/" + currentDevice + "/" + currentDay);
-        dayRef.limitToLast(1).on('child_added', (snap_dataObject) => {
-            let date = new Date();
-            const dataObject = snap_dataObject.val();
-            dataObject.timeShort = new Date(snap_dataObject.val().date.time).toLocaleTimeString();
-            /* only push new objects when available days is filled with data - this ensures that no duplicates are entered at the first load of the website */
-            if (this.state.availableDays && this.state.availableDays.length > 0) {
-                let dataPerDay = this.state.availableDays[this.state.currentDayIndex];
-                if (dataObject.date.time != dataPerDay.data[dataPerDay.data.length - 1].date.time) {
-                    dataPerDay.data.push(dataObject);
-                    this.setState({ dataToDisplay: dataPerDay.data });
-                    this.updateChart();
-                    console.log(date.toLocaleTimeString() + ": found and inserted new data from: " + currentDevice + " with value: " + dataObject);
+        
+            let dbKey = this.props.email.replace(/\./g, ",");
+            //register listener on dataObjects - invokes when new data is added
+            const dayRef = this.props.rtdb.ref(dbKey + "/" + currentDevice + "/" + currentDay);
+            dayRef.limitToLast(1).on('child_added', (snap_dataObject) => {
+                let date = new Date();
+                const dataObject = snap_dataObject.val();
+                dataObject.timeShort = new Date(snap_dataObject.val().date.time).toLocaleTimeString();
+                /* only push new objects when available days is filled with data - this ensures that no duplicates are entered at the first load of the website */
+                if (this.state.availableDays && this.state.availableDays.length > 0) {
+                    let dataPerDay = this.state.availableDays[this.state.currentDayIndex];
+                    if (dataObject.date.time != dataPerDay.data[dataPerDay.data.length - 1].date.time) {
+                        dataPerDay.data.push(dataObject);
+                        this.setState({ dataToDisplay: dataPerDay.data });
+                        this.updateChart();
+                        console.log(date.toLocaleTimeString() + ": found and inserted new data from: " + currentDevice + " with value: " + dataObject);
+                    }
                 }
-            }
-        })
-        console.log("Registered listener for new data on: " + dbKey + "/" + currentDevice + "/" + currentDay);
-        this.referencesRTDB.push(dayRef);
+            })
+            console.log("Registered listener for new data on: " + dbKey + "/" + currentDevice + "/" + currentDay);
+            this.referencesRTDB.push(dayRef);       
     }
 
     loadDataForThisDevice(serial) {
@@ -140,10 +141,12 @@ class ChartContainer extends Component {
         })
     }
 
-    displayDataForThisDay() {
+    displayDataForThisDay(index) {
+        console.log("this.state.currentDayIndex: "  + this.state.currentDayIndex + " / child.props.id: " + index);
         this.setState({
-            dataToDisplay: this.state.availableDays[this.state.currentDayIndex].data
+            dataToDisplay: this.state.availableDays[index].data
         })
+     
     }
 
     //stupid function to ensure rerendering of the chart because ReChart doesn't compare length of old and new Array, it doesn't realize when new data is apparent except when it is served a different array, which is achieved with a simple splice function
@@ -158,25 +161,28 @@ class ChartContainer extends Component {
         if (this.props.devices.length > 0) {
             return (
                 <div className="container">
-                    <IconButton className="chart-container-btn-close" onClick={() => this.props.removeMyself()}><CloseIcon /></IconButton>
-                    <FormControlLabel className="chart-container-btn-close"
-                        control={
-                            <Switch
-                                checked={this.state.isListeningToChanges}
-                                onChange={() => this.toggleListener()}
-                                value="checkedB"
-                                color="primary"
-                            />
-                        }
-                        label="listen for new data" />
+                    <IconButton className="chart-container-float-right" onClick={() => this.props.removeMyself()}><CloseIcon /></IconButton>
+                    <FormControl disabled={this.state.chartIsLoading || !(typeof this.state.dataToDisplay !== 'undefined' && this.state.dataToDisplay.length > 0)} className="chart-container-float-right">
+                        <FormControlLabel 
+                            control={
+                                <Switch
+                                    checked={this.state.isListeningToChanges}
+                                    onChange={() => this.toggleListener()}
+                                    value="checkedB"
+                                    color="primary"
+                                />
+                            }
+                            label="listen for new data" />
+                    </FormControl>
 
                     <Typography variant="h6" component="h3">
-                         Chart N°{this.props.index+1} : {this.state.dataToDisplay.length < 1440 ? (this.state.dataToDisplay.length + " records") : (this.state.dataToDisplay.length + " records -- WARNING: maximum reached - there might be more data on RTDB.")}
+                        Chart N°{this.props.index + 1} : {this.state.dataToDisplay.length < 1440 ? (this.state.dataToDisplay.length + " records") : (this.state.dataToDisplay.length + " records -- WARNING: maximum reached - there might be more data on RTDB.")}
                     </Typography>
 
 
                     <div className="chart-container-options">
                         <FormControl disabled={this.state.chartIsLoading} className="chart-container-options-child">
+                            <InputLabel >serial of device</InputLabel>
                             <Select
                                 value={this.state.currentDevice}
                                 onChange={(event) => { this.setState({ currentDevice: event.target.value }), this.loadDataForThisDevice(event.target.value) }}
@@ -193,54 +199,60 @@ class ChartContainer extends Component {
                             </Select>
                         </FormControl>
 
-                        
-                        <FormControl disabled={this.state.chartIsLoading} className="chart-container-options-child">
-                            <Select
-                                value={this.state.currentDayString}
-                                onChange={(event, child) => {this.setState({currentDayString: event.target.value, currentDayIndex: child.props.id}) ,this.displayDataForThisDay() }}
-                                inputProps={{
-                                    name: 'selectDayKey',
-                                    id: 'selectDayKey',
-                                }}
-                            >
-                                {this.state.availableDays.map((day, i) => {
-                                    return (
-                                        <MenuItem id={i} value={day.key}>{day.key}</MenuItem>
-                                    )
-                                })}
-                            </Select>
-                        </FormControl>
 
-                        <FormControl disabled={this.state.chartIsLoading} className="chart-container-options-child">
-                            <Select
-                                value={this.state.currentDataKey1}
-                                onChange={(event) => this.setState({ currentDataKey1: event.target.value })}
-                                inputProps={{
-                                    name: 'selectDataKey',
-                                    id: 'selectDataKey',
-                                }}
-                            >
-                                <MenuItem value={"ldsa"}>LDSA</MenuItem>
-                                <MenuItem value={"humidity"}>Humidity</MenuItem>
-                                <MenuItem value={"diameter"}>Diameter</MenuItem>
-                                <MenuItem value={"batteryVoltage"}>BatteryVoltage</MenuItem>
-                                <MenuItem value={"temp"}>Temperature</MenuItem>
-                            </Select>
-                        </FormControl>
+                        <span>
+                            <FormControl disabled={this.state.chartIsLoading || !(typeof this.state.dataToDisplay !== 'undefined' && this.state.dataToDisplay.length > 0)} className="chart-container-options-child">
+                                <InputLabel >day of record</InputLabel>
+                                <Select
+                                    value={this.state.currentDayString}
+                                    onChange={(event, child) => { this.setState({ currentDayString: event.target.value, currentDayIndex: child.props.id }), this.displayDataForThisDay(child.props.id)}}
+                                    inputProps={{
+                                        name: 'selectDayKey',
+                                        id: 'selectDayKey',
+                                    }}
+                                >
+                                    {this.state.availableDays.map((day, i) => {
+                                        return (
+                                            <MenuItem id={i} value={day.key}>{day.key}</MenuItem>
+                                        )
+                                    })}
+                                </Select>
+                            </FormControl>
+
+                            <FormControl disabled={this.state.chartIsLoading || !(typeof this.state.dataToDisplay !== 'undefined' && this.state.dataToDisplay.length > 0)} className="chart-container-options-child">
+                                <InputLabel >Dataset</InputLabel>
+                                <Select
+                                    value={this.state.currentDataKey1}
+                                    onChange={(event) => this.setState({ currentDataKey1: event.target.value })}
+                                    inputProps={{
+                                        name: 'selectDataKey',
+                                        id: 'selectDataKey',
+                                    }}
+                                >
+                                    <MenuItem value={"ldsa"}>LDSA</MenuItem>
+                                    <MenuItem value={"humidity"}>Humidity</MenuItem>
+                                    <MenuItem value={"diameter"}>Diameter</MenuItem>
+                                    <MenuItem value={"batteryVoltage"}>BatteryVoltage</MenuItem>
+                                    <MenuItem value={"temp"}>Temperature</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </span>
+
 
                     </div>
 
                     {!this.state.chartIsLoading ?
-                        <LineChart width={this.props.width - 150} height={330} data={this.state.dataToDisplay} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync">
-                            <XAxis dataKey="timeShort" />
-                            <YAxis />
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <Tooltip formatter={(value) => new Intl.NumberFormat('en').format(value)} />
-                            <Legend />
-                            <Brush></Brush>
-                            <ReferenceLine y={9800} label="Max" stroke="red" />
-                            <Line type="monotone" dataKey={this.state.currentDataKey1} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} dot={false} />
-                        </LineChart>
+                        (this.state.dataToDisplay && this.state.dataToDisplay.length > 0 ?
+                            <LineChart width={this.props.width * 0.95} height={330} data={this.state.dataToDisplay} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync" className="chart-container-graph">
+                                <XAxis dataKey="timeShort" />
+                                <YAxis width={20} />
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <Tooltip formatter={(value) => new Intl.NumberFormat('en').format(value)} />
+                                <Legend />
+                                <Brush></Brush>
+                                <ReferenceLine y={9800} label="Max" stroke="red" />
+                                <Line type="monotone" dataKey={this.state.currentDataKey1} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} dot={false} />
+                            </LineChart> : <p>Please choose a device from the dropdown menu</p>)
 
                         :
 

@@ -30,14 +30,8 @@ class Welcome extends Component {
     attemptLogin() {
         let self = this;
         this.props.setLoading(true);
-        firebase.auth().signInWithEmailAndPassword(this.state.email, this.state.password).catch(function (error) {
-            // Handle Errors here.
-            /*
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            */
-            // ...
-            let msg = error.code + ": " + error.message;
+        firebase.auth().signInWithEmailAndPassword(this.state.email, this.state.password).catch(function (error) {                   
+            let msg = error.message; //error.code
             self.setState({
                 snackBarMessage: msg,
                 snackBarOpened: true
