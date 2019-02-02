@@ -9,6 +9,8 @@ import Switch from '@material-ui/core/Switch';
 import moment from 'moment'
 
 
+
+
 class ChartContainer extends Component {
 
     constructor() {
@@ -182,6 +184,16 @@ class ChartContainer extends Component {
         })
     }
 
+    renderMyToolTip() {
+        // it appears this function is never called, what might be wrong?
+        console.log("render my tooltip called");
+        return (
+            <div>Custom content
+
+            </div>
+        )
+    }
+
     sortDataAfterDays(){
         //arg2 - arg1 = absteigende Reihenfolge = jüngstes Element zuerst (sort() benötigt einen Komparator der Zahlen <0; =0, oder >0 ausgibt)
         let _temp = this.state.availableDays;
@@ -302,9 +314,12 @@ class ChartContainer extends Component {
                                 */}
                             
                             {
-                                <ScatterChart width={this.props.width * 0.92} 
-                                height={300} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <ScatterChart width={this.props.width * 0.9} 
+                                height={300} margin={{ top: 20, right: 20, bottom: 20, left: 100 }}
+                                >
                                     <CartesianGrid />
+                                    <Brush height={20}
+                                    />
                                     <XAxis dataKey={'time'}  
                                         name='time'  
                                         type="number" 
@@ -312,19 +327,28 @@ class ChartContainer extends Component {
                                         tickFormatter = {(time) => moment(time).format('HH:mm')}
                                         />
                                     {/*<XAxis dataKey="timeShort" />*/}
-                                    <YAxis width={0} 
+                                    <YAxis width={10} 
                                         dataKey={this.state.currentDataKey1} 
                                         type="number" 
-                                        name={this.state.currentDataKey1} />
+                                        interval={0}
+                                        tick ={true}
+                                        domain={['auto', 'auto']}
+                                        name={this.state.currentDataKey1}
+                                          />
                                     <Scatter name='Scatter plot' 
                                         data={this.state.dataToDisplay} 
                                         shape ='circle'
                                          fill='#8884d8' 
                                         isAnimationActive={false} 
                                         />
-                                    <Tooltip cursor={{ strokeDasharray: '3 3' }}  
-                                        formatter={(value) => new Intl.NumberFormat('en').format(value)}/>
-                                    <Brush height={20}></Brush>
+                                    <Tooltip  
+                                        cursor={{ strokeDasharray: '3 3' }} 
+                                        formatter = {(value,name) => (name === "time") ? moment(value).format('HH:mm'): Intl.NumberFormat('en').format(value)} 
+                                    //    formatter={(value) => new Intl.NumberFormat('en').format(value)}
+                                    />
+                                   {/*} <Tooltip content = {this.renderMyTooltip} />*/}
+                                   
+                                    
                                     
                                 </ScatterChart>
 
