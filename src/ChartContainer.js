@@ -6,6 +6,7 @@ import './ChartContainer.css';
 import { IconButton } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import Switch from '@material-ui/core/Switch';
+import moment from 'moment'
 
 
 class ChartContainer extends Component {
@@ -94,7 +95,7 @@ class ChartContainer extends Component {
                 _dataObject.time = snap_dataObject.val().date.time;
             } else if(snap_dataObject.val().milliseconds){
                _dataObject.timeShort = new Date(snap_dataObject.val().milliseconds).toLocaleTimeString();
-               _dataObject.miliseconds = snap_dataObject.val().milliseconds;
+               _dataObject.milliseconds = snap_dataObject.val().milliseconds;
                _dataObject.time = snap_dataObject.val().milliseconds;
             }else{
                 _dataObject.timeShort = "Error";
@@ -142,13 +143,13 @@ class ChartContainer extends Component {
                     dataObject.time = _dataObject.val().date.time;
                 } else if(_dataObject.val().milliseconds){
                     dataObject.timeShort = new Date(_dataObject.val().milliseconds).toLocaleTimeString();
-                    dataObject.miliseconds = _dataObject.val().milliseconds;
+                    dataObject.milliseconds = _dataObject.val().milliseconds;
                     dataObject.time = _dataObject.val().milliseconds;
+                    //let mydate = new Date(_dataObject.val().milliseconds);
+                    //dataObject.time = mydate.getHours() + mydate.getMinutes()/60; 
                 }else{
                     dataObject.timeShort = "Error";
                 }
-
-
                 dataPerDay.data.push(dataObject);
             })
             dataPerDay.data = dataPerDay.data.slice(0, 1440);
@@ -267,23 +268,21 @@ class ChartContainer extends Component {
                                     }}
                                 >
                                     <MenuItem value={"ldsa"}>LDSA</MenuItem>
-                                    <MenuItem value={"humidity"}>Humidity</MenuItem>
+                                    <MenuItem value={"numberC"}>Particle number</MenuItem>
                                     <MenuItem value={"diameter"}>Diameter</MenuItem>
-                                    <MenuItem value={"batteryVoltage"}>BatteryVoltage</MenuItem>
+                                    <MenuItem value={"humidity"}>Relative Humidity</MenuItem>
                                     <MenuItem value={"temp"}>Temperature</MenuItem>
-                                    <MenuItem value={"particle number"}>Temperature</MenuItem>
-                                    <MenuItem value={"particle number"}>Temperature</MenuItem>
+                                    <MenuItem value={"batteryVoltage"}>Battery Voltage</MenuItem>
+                                    <MenuItem value={"error"}>Device Status</MenuItem>
                                 </Select>
                             </FormControl>
                         </span>
-
-
                     </div>
 
                     {!this.state.chartIsLoading ?
                         (this.state.dataToDisplay && this.state.dataToDisplay.length > 0 ?
                             (<div>
-                                {
+                                {/*
                                 <LineChart width={this.props.width * 0.95} height={330} data={this.state.dataToDisplay} margin={{ top: 5, right: 30, left: 20, bottom: 5 }} syncId="main_sync" className="chart-container-graph">
                                 <XAxis dataKey="timeShort" />
                                 <YAxis width={0} />
@@ -292,18 +291,41 @@ class ChartContainer extends Component {
                                 
                                 <Brush height={20}></Brush>
                                 <ReferenceLine y={9800} label="Max" stroke="red" />
-                                <Line  isAnimationActive={false} type="monotone" dataKey={this.state.currentDataKey1} stroke="#8884d8" activeDot={{ r: 8 }} connectNulls={true} dot={false} />
+                                <Line  isAnimationActive={false} 
+                                    type="monotone" 
+                                    dataKey={this.state.currentDataKey1} 
+                                    stroke="#8884d8" 
+                                    activeDot={{ r: 8 }} 
+                                    connectNulls={true} 
+                                    dot={false} />
                             </LineChart>
-                                }
+                                */}
                             
                             {
-                                <ScatterChart width={this.props.width * 0.95} height={330} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <ScatterChart width={this.props.width * 0.92} 
+                                height={300} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                     <CartesianGrid />
-                                    <XAxis dataKey={'time'}  name='time'  type="number" domain={['auto', 'auto']}/>
-                                    <XAxis dataKey="timeShort" />
-                                    <YAxis width={0} dataKey={this.state.currentDataKey1} type="number" name={this.state.currentDataKey1} />
-                                    <Scatter name='test Scatter plot' data={this.state.dataToDisplay} fill='#8884d8' isAnimationActive={false} />
-                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                                    <XAxis dataKey={'time'}  
+                                        name='time'  
+                                        type="number" 
+                                        domain={['auto', 'auto']}
+                                        tickFormatter = {(time) => moment(time).format('HH:mm')}
+                                        />
+                                    {/*<XAxis dataKey="timeShort" />*/}
+                                    <YAxis width={0} 
+                                        dataKey={this.state.currentDataKey1} 
+                                        type="number" 
+                                        name={this.state.currentDataKey1} />
+                                    <Scatter name='Scatter plot' 
+                                        data={this.state.dataToDisplay} 
+                                        shape ='circle'
+                                         fill='#8884d8' 
+                                        isAnimationActive={false} 
+                                        />
+                                    <Tooltip cursor={{ strokeDasharray: '3 3' }}  
+                                        formatter={(value) => new Intl.NumberFormat('en').format(value)}/>
+                                    <Brush height={20}></Brush>
+                                    
                                 </ScatterChart>
 
                             }
