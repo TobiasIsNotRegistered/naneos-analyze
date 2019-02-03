@@ -40,10 +40,14 @@ class ChartContainer extends Component {
         this.referencesRTDB = [];
         this.updateChart = this.updateChart.bind(this);
         this.registerListenersForThisDay = this.registerListenersForThisDay.bind(this);
+        this.handleScroll = this.handleScroll.bind(this);
     }
 
     componentDidMount() {
-        this.setState({currentDevice : ""});
+        this.setState({ currentDevice: "" });
+        //event listener for scrolling inside the chartContainer
+        window.addEventListener('scroll', this.handleScroll);
+
         /*
         if (this.props.devices.length > 0) {
             this.setState({ currentDevice: this.props.devices[0] });
@@ -58,6 +62,7 @@ class ChartContainer extends Component {
     componentWillUnmount() {
         //TODO: clean up local data
         this.cleanUpLocalData();
+        window.removeEventListener('scroll', this.handleScroll);
     }
 
     toggleListener() {
@@ -66,8 +71,8 @@ class ChartContainer extends Component {
             this.setState({ isListeningToChanges: false, listeningToChangesFrom: null })
         } else {
             this.registerListenersForThisDay();
-            const x = {day: this.state.currentDay, device: this.state.currentDevice};
-            this.setState({ isListeningToChanges: true, listeningToChangesFrom: x});
+            const x = { day: this.state.currentDay, device: this.state.currentDevice };
+            this.setState({ isListeningToChanges: true, listeningToChangesFrom: x });
         }
     }
 
@@ -95,14 +100,14 @@ class ChartContainer extends Component {
             if (snap_dataObject.val().date) {
                 _dataObject.timeShort = new Date(snap_dataObject.val().date.time).toLocaleTimeString();
                 _dataObject.time = snap_dataObject.val().date.time;
-            } else if(snap_dataObject.val().milliseconds){
-               _dataObject.timeShort = new Date(snap_dataObject.val().milliseconds).toLocaleTimeString();
-               _dataObject.milliseconds = snap_dataObject.val().milliseconds;
-               _dataObject.time = snap_dataObject.val().milliseconds;
-            }else{
+            } else if (snap_dataObject.val().milliseconds) {
+                _dataObject.timeShort = new Date(snap_dataObject.val().milliseconds).toLocaleTimeString();
+                _dataObject.milliseconds = snap_dataObject.val().milliseconds;
+                _dataObject.time = snap_dataObject.val().milliseconds;
+            } else {
                 _dataObject.timeShort = "Error";
             }
-           
+
             /* only push new objects when available days is filled with data - this ensures that no duplicates are entered at the first load of the website */
             if (this.state.availableDays && this.state.availableDays.length > 0) {
                 let dataPerDay = this.state.availableDays[this.state.currentDayIndex];
@@ -143,19 +148,19 @@ class ChartContainer extends Component {
                 if (_dataObject.val().date) {
                     dataObject.timeShort = new Date(_dataObject.val().date.time).toLocaleTimeString();
                     dataObject.time = _dataObject.val().date.time;
-                } else if(_dataObject.val().milliseconds){
+                } else if (_dataObject.val().milliseconds) {
                     dataObject.timeShort = new Date(_dataObject.val().milliseconds).toLocaleTimeString();
                     dataObject.milliseconds = _dataObject.val().milliseconds;
                     dataObject.time = _dataObject.val().milliseconds;
                     //let mydate = new Date(_dataObject.val().milliseconds);
                     //dataObject.time = mydate.getHours() + mydate.getMinutes()/60; 
-                }else{
+                } else {
                     dataObject.timeShort = "Error";
                 }
                 dataPerDay.data.push(dataObject);
             })
             dataPerDay.data = dataPerDay.data.slice(0, 1440);
-            
+
             this.setState(prevState => ({
                 availableDays: [...prevState.availableDays, dataPerDay],
                 currentDayString: snap_day.key,
@@ -194,19 +199,32 @@ class ChartContainer extends Component {
         )
     }
 
-    sortDataAfterDays(){
+    sortDataAfterDays() {
         //arg2 - arg1 = absteigende Reihenfolge = jüngstes Element zuerst (sort() benötigt einen Komparator der Zahlen <0; =0, oder >0 ausgibt)
         let _temp = this.state.availableDays;
-        _temp.sort((day1, day2) => {return(day2.data[0].date.time - day1.data[0].date.time)})
+        _temp.sort((day1, day2) => { return (day2.data[0].date.time - day1.data[0].date.time) })
         /*
         this.setState({
             availableDays : this.state.availableDays.sort((day1, day2) => {return(day2.data[0].date.time - day1.data[0].date.time)})
         })
         */
-       return _temp;
+        return _temp;
     }
 
+    handleScroll = () => {
+        console.log("handleScroll invoked");
+    }
+
+
     render() {
+        //startindex & endindex are used for the brush of scatterChart
+        const { startIndex, endIndex } = this.state;
+        const _dataToDisplay = null;
+        if (this.state.dataToDisplay && this.state.dataToDisplay.length > 0) {
+            const _dataToDisplay = this.state.dataToDisplay.filter(dataObject => dataObject.time >= startIndex && dataObject.time <= endIndex);
+        }
+
+
         if (this.props.devices.length > 0) {
             return (
                 <div className="container">
@@ -235,7 +253,7 @@ class ChartContainer extends Component {
                             <InputLabel >serial of device</InputLabel>
                             <Select
                                 value={this.state.currentDevice}
-                                onChange={(event) => { this.setState({ currentDevice: event.target.value, currentDataKey1: this.state.currentDataKey1 != "" ?  this.state.currentDataKey1 : "ldsa"}), this.loadDataForThisDevice(event.target.value)}}
+                                onChange={(event) => { this.setState({ currentDevice: event.target.value, currentDataKey1: this.state.currentDataKey1 != "" ? this.state.currentDataKey1 : "ldsa" }), this.loadDataForThisDevice(event.target.value) }}
                                 inputProps={{
                                     name: 'selectDeviceKey',
                                     id: 'selectDeviceKey',
@@ -312,47 +330,51 @@ class ChartContainer extends Component {
                                     dot={false} />
                             </LineChart>
                                 */}
-                            
-                            {
-                                <ScatterChart width={this.props.width * 0.9} 
-                                height={300} margin={{ top: 20, right: 20, bottom: 20, left: 100 }}
-                                >
-                                    <CartesianGrid />
-                                    <Brush height={20}
-                                    />
-                                    <XAxis dataKey={'time'}  
-                                        name='time'  
-                                        type="number" 
-                                        domain={['auto', 'auto']}
-                                        tickFormatter = {(time) => moment(time).format('HH:mm')}
-                                        />
-                                    {/*<XAxis dataKey="timeShort" />*/}
-                                    <YAxis width={10} 
-                                        dataKey={this.state.currentDataKey1} 
-                                        type="number" 
-                                        interval={0}
-                                        tick ={true}
-                                        domain={['auto', 'auto']}
-                                        name={this.state.currentDataKey1}
-                                          />
-                                    <Scatter name='Scatter plot' 
-                                        data={this.state.dataToDisplay} 
-                                        shape ='circle'
-                                         fill='#8884d8' 
-                                        isAnimationActive={false} 
-                                        />
-                                    <Tooltip  
-                                        cursor={{ strokeDasharray: '3 3' }} 
-                                        formatter = {(value,name) => (name === "time") ? moment(value).format('HH:mm'): Intl.NumberFormat('en').format(value)} 
-                                    //    formatter={(value) => new Intl.NumberFormat('en').format(value)}
-                                    />
-                                   {/*} <Tooltip content = {this.renderMyTooltip} />*/}
-                                   
-                                    
-                                    
-                                </ScatterChart>
 
-                            }
+                                {
+                                    <ScatterChart width={this.props.width * 0.9}
+                                        height={300} margin={{ top: 20, right: 20, bottom: 20, left: 100 }}
+                                        data={this.state.dataToDisplay}
+                                    >
+                                        <CartesianGrid />
+
+                                        <XAxis dataKey='time'
+                                            name='time'
+                                            type="number"
+                                            domain={['auto', 'auto']}
+                                            tickFormatter={(time) => moment(time).format('HH:mm')}
+                                        />
+                                        <YAxis width={10}
+                                            dataKey={this.state.currentDataKey1}
+                                            type="number"
+                                            interval={0}
+                                            tick={true}
+                                            domain={['auto', 'auto']}
+                                            name={this.state.currentDataKey1}
+                                        />
+                                        <Brush
+                                            dataKey='time'
+                                            height={30}
+                                            stroke="#8884d8"
+                                            onChange={({ startIndex, endIndex }) => this.setState({ startIndex, endIndex })} />
+                                        <Scatter name='Scatter plot'
+                                            data={_dataToDisplay}
+                                            shape='circle'
+                                            fill='#8884d8'
+                                            isAnimationActive={false}
+                                        />
+                                        <Tooltip
+                                            cursor={{ strokeDasharray: '3 3' }}
+                                            formatter={(value, name) => (name === "time") ? moment(value).format('HH:mm') : Intl.NumberFormat('en').format(value)}
+                                        //    formatter={(value) => new Intl.NumberFormat('en').format(value)}
+                                        />
+                                        {/*} <Tooltip content = {this.renderMyTooltip} />*/}
+
+
+
+                                    </ScatterChart>
+
+                                }
 
                             </div>)
                             : <p>Please choose a device from the dropdown menu</p>)
@@ -368,7 +390,7 @@ class ChartContainer extends Component {
                     <h4>Error: No device found for {this.props.email}. Check List of devices on RTDB @ {this.props.email}/devices to ensure that data can be retrieved.</h4>
                     <p>To create a list of devices, try syncing data with the Naneos-Analyze App for Android at least once.</p>
                     <a href="https://console.firebase.google.com/u/2/project/analyze-naneos/database/analyze-naneos/data"> -->take me to firebase </a>
-                    <br/>   >
+                    <br />   >
                     <a href="mailto:martin.fierz@naneos.ch">--> send mail to admin</a>
                 </div>
             )
