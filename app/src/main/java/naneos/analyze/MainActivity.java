@@ -123,6 +123,9 @@ public class MainActivity extends AppCompatActivity {
     private Timer timerAssertScanStatus;
     private TimerTask timerAssertScanStatusTask;
 
+    // added MF:
+    private NaneosDataAverageObject average = new NaneosDataAverageObject();
+
 
     /********* LIFECYCLE ************/
     // onCreate()
@@ -644,7 +647,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         timerDBSync = new Timer();
-        int freq = 5000; // 60000; //60000 = 1 min
+        int freq = 60000; // 5000; // 60000; //60000 = 1 min
 
         timerDBSyncTask = new TimerTask() {
             @Override

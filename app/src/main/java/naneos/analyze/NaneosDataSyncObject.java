@@ -13,7 +13,8 @@ import android.util.Log;
 public class NaneosDataSyncObject implements Serializable {
 
     //data
-    private Date date;
+    //private Date date;
+    private long milliseconds;
     private float temp;
     private float humidity;
     private float error;
@@ -21,8 +22,8 @@ public class NaneosDataSyncObject implements Serializable {
     private float numberC;
     private float LDSA;
     private float batteryVoltage;
-    private int serial;
-    // todo: serial should not be necessary; but if I don't include it, the webpae doesn't show it!
+    // private int serial;
+    // todo: serial should not be necessary; but if I don't include it, the webpage doesn't show it!
 
     // stuff that is in NaneosDataObject but not in NaneosDataSyncObject:
     //private int RSSI;
@@ -36,11 +37,13 @@ public class NaneosDataSyncObject implements Serializable {
     //empty constructor
     //necessary for firebase!
     NaneosDataSyncObject() {
+
     }
 
 
     NaneosDataSyncObject(NaneosDataObject naneosDataObject){
-        date = naneosDataObject.getDate();
+        //date = naneosDataObject.getDate();
+        milliseconds = naneosDataObject.getDate().getTime();
         temp = naneosDataObject.getTemp();
         humidity = naneosDataObject.getHumidity();
         error = naneosDataObject.getError();
@@ -48,7 +51,7 @@ public class NaneosDataSyncObject implements Serializable {
         numberC = naneosDataObject.getNumberC();
         LDSA = naneosDataObject.getLDSA();
         batteryVoltage = naneosDataObject.getBatteryVoltage();
-        serial = naneosDataObject.getSerial();
+        //serial = naneosDataObject.getSerial();
         Log.d("NaneosSync", this.toString());
     }
 
@@ -63,12 +66,20 @@ public class NaneosDataSyncObject implements Serializable {
     /** GETTERS & SETTERS **/
 
 
-    public Date getDate() {
-        return date;
+   // public Date getDate() {
+    //    return date;
+    //}
+
+    //public void setDate(Date date) {
+     //   this.date = date;
+    //}
+
+    public long getMilliseconds() {
+        return milliseconds;
     }
 
-    public void setDate(Date date) {
-        this.date = date;
+    void setMilliseconds(long ms) {
+        milliseconds = ms;
     }
 
     float getTemp() {
@@ -128,13 +139,13 @@ public class NaneosDataSyncObject implements Serializable {
         this.batteryVoltage = batteryVoltage;
     }
 
-    int getSerial() {
-        return serial;
-    }
+    //int getSerial() {
+    //    return serial;
+    //}
 
-    void setSerial(int serial) {
-        this.serial = serial;
-    }
+    //void setSerial(int serial) {
+    //    this.serial = serial;
+    //}
 
     /*String getDateAsFirestoreKey(){
         String dayOfTheWeek = (String) DateFormat.format("EEEE", date); // Thursday

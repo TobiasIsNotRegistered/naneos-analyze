@@ -16,6 +16,10 @@ import java.util.Calendar;
  * Most of the code here is from the old Naneos-App
  */
 //TODO: Use AsyncTask instead of Thread, do not restart on receive! (Right now, a new Thread is used to deserialize the data --> inefficient
+
+
+// TODO MF: this class should own a list of devices
+
 public class NaneosScanCallback extends ScanCallback {
 
     //Data
@@ -37,11 +41,9 @@ public class NaneosScanCallback extends ScanCallback {
     private Thread receiveAndDeserializeBleData;
     private Activity mainActivity;
 
-
     NaneosScanCallback(Activity activity) {
         this.mainActivity = activity;
     }
-
 
     @Override
     // callback when scan fails
@@ -173,7 +175,6 @@ public class NaneosScanCallback extends ScanCallback {
                         //Send data to mainAcitivity by making NaneosDataObject Serializable
                         Intent intent = new Intent();
                         // the line below gives a lint warning "static member accessed via instance reference"
-                        //intent.setAction(MainActivity.bleDataReceiver.SEND_BLE_DATA);
                         intent.setAction(MainActivity.NaneosBleDataBroadcastReceiver.SEND_BLE_DATA);
                         intent.putExtra("newDataObject", newData);
                         mainActivity.sendBroadcast(intent);
@@ -181,8 +182,6 @@ public class NaneosScanCallback extends ScanCallback {
                 }
             }
         });
-
         receiveAndDeserializeBleData.start();
-
     }
 }
