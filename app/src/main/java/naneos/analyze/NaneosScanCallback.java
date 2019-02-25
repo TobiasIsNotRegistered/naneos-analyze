@@ -15,13 +15,10 @@ import java.util.Calendar;
  * At the end, the new data is being sent to the mainActivity via a BroadcastReceiver
  * Most of the code here is from the old Naneos-App
  */
-//TODO: Use AsyncTask instead of Thread, do not restart on receive! (Right now, a new Thread is used to deserialize the data --> inefficient
-
-
+// TODO: Use AsyncTask instead of Thread, do not restart on receive! (Right now, a new Thread is used to deserialize the data --> inefficient
 // TODO MF: this class should own a list of devices
 
 public class NaneosScanCallback extends ScanCallback {
-
     //Data
     /*private float LDSA;
     private float RH;
@@ -31,14 +28,14 @@ public class NaneosScanCallback extends ScanCallback {
     private int number;
     private int diameter;
     private int serial;*/
-    private int currentDataIndex;
+   // private int currentDataIndex;
 
 
     private String lastreceived = "";    // lastreceived will hold the last valid advertising data received
-    private String buffer = "";
+    //private String buffer = "";
 
     //Meta
-    private Runnable deserialization;
+    //private Runnable deserialization;
     private Thread receiveAndDeserializeBleData;
     private Activity mainActivity;
 
@@ -135,18 +132,16 @@ public class NaneosScanCallback extends ScanCallback {
                         // new data
                         NaneosDataObject newData = new NaneosDataObject();
                         newData.setDate(Calendar.getInstance().getTime());
-                        newData.setID(currentDataIndex++);
+                        //newData.setID(currentDataIndex++);
                         newData.setMacAddress(device.getAddress());
                         newData.setRSSI(RSSI);
 
-                        // TODO: this is the wrong way round! Or alternatively, if anything strange is found in data packet
-                        // we have to destroy the newData object again!
+                        // TODO: actually we should first parse the message and only create a naneos data object if it makes sense
 
                         // 1. remember it
                         lastreceived = msg;
-                        // 2. add it to input buffer
-                        //buffer = buffer + msg;
-                        // 3. parse
+
+                        // 2. parse
                         String[] parts = msg.split("S");
                         System.out.println("msg is:"+msg);
                         if (parts.length > 0) {
@@ -167,14 +162,12 @@ public class NaneosScanCallback extends ScanCallback {
                                         case 'T':
                                             if (parts[i].endsWith("t")) {
                                                 Temperature = Float.valueOf(parts[i].substring(1, parts[i].length() - 1));
-
                                                 newData.setTemp(Temperature);
                                             }
                                             break;
                                         case 'H':
                                             if (parts[i].endsWith("h")) {
                                                 RH = Float.valueOf(parts[i].substring(1, parts[i].length() - 1));
-
                                                 newData.setHumidity(RH);
                                             }
                                             break;
@@ -186,12 +179,10 @@ public class NaneosScanCallback extends ScanCallback {
                                             break;
                                         case 'E':
                                             errorcode = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
-
                                             newData.setError(errorcode);
                                             break;
                                         case 'N':
                                             serial = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
-
                                             newData.setSerial(serial);
                                             break;
                                         case 'D':
@@ -199,28 +190,20 @@ public class NaneosScanCallback extends ScanCallback {
                                             if(parts[i].length() > 1 ) {
                                                 diameter = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
                                                 //todo: string index out of bounds exception length = 1 regionstart = 1, regionlength = 1
-
                                                 newData.setDiameter(diameter);
                                             }
                                             break;
                                         case 'C':
                                             number = Integer.valueOf(parts[i].substring(1, parts[i].length() - 1));
-
                                             newData.setNumberC(number);
                                             break;
                                     }
                                 }
                             } catch (NumberFormatException e) {
-                                System.out.println("number format exception caught" + buffer);
+                                System.out.println("number format exception caught" + msg);
                             }
                         }
-                        // 4. keep only last unparsed stuff
-                        // TODO: the entire buffer thing can be removed
-                        if (parts.length > 0)
-                            buffer = parts[parts.length - 1];
-                        // if there was a trailing S, restore it (it was stripped by string.split
-                        if (msg.charAt(msg.length() - 1) == 'S')
-                            buffer = buffer + 'S';
+
 
                         //Send data to mainAcitivity by making NaneosDataObject Serializable
                         // TODO: is this intent stuff really necessary?? no other way to call back main Activity?

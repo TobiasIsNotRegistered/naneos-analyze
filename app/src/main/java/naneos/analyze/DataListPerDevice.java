@@ -29,6 +29,21 @@ public class DataListPerDevice {
 
     @Override
     public String toString() {
+        return "SN: " + getSerial()
+                + " / " + getMacAddress() + " RSSI: " + aggregatedPreviousData.getRSSI()
+                + "\n" + "received: " + store.size()
+                + "\tsynced: " + amountOfSyncedObjects
+                + "\n"
+                + "\n" + "ldsa: " + aggregatedPreviousData.getLDSA()
+                + "\t" + "diam: " + aggregatedPreviousData.getDiameter()
+                + "\t" + "N: " + (int)aggregatedPreviousData.getNumberC()
+                + "\n" + "RH: " + aggregatedPreviousData.getHumidity()
+                + "\t" + "voltage: " + aggregatedPreviousData.getBatteryVoltage()
+                + "\t" + "status: " + (int)aggregatedPreviousData.getError();
+        //aggregatedPreviousData.toString()
+    }
+    /*
+    public String toString() {
         return "Serial: " + getSerial() +  "\t  RSSI: " + aggregatedPreviousData.getRSSI()
                 + "\n" + "Mac: " + getMacAddress()
                 + "\n" + "received Data: " + store.size()
@@ -39,7 +54,7 @@ public class DataListPerDevice {
                 + "\n" + "diameter: " + aggregatedPreviousData.getDiameter()
                 + "\n" + "voltage: " + aggregatedPreviousData.getBatteryVoltage()
                 + "\n" + "numberC: " + aggregatedPreviousData.getNumberC();
-    }
+    }*/
 
     public void add(NaneosDataObject objectToAdd) {
         // case0: empty list, first item is being added

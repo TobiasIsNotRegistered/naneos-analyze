@@ -12,7 +12,7 @@ import android.text.format.DateFormat;
 public class NaneosDataObject implements Serializable {
 
     //data
-    private int ID;
+    //private int ID;
     private Date date;
     private float temp;
     private float humidity;
@@ -36,13 +36,13 @@ public class NaneosDataObject implements Serializable {
 
 
     /** GETTER & SETTER **/
-    private int getID() {
-        return ID;
-    }
+    //private int getID() {
+    //    return ID;
+    //}
 
-    void setID(int ID) {
-        this.ID = ID;
-    }
+    //void setID(int ID) {
+    //    this.ID = ID;
+    //}
 
     int getRSSI() {return RSSI; }
     void setRSSI(int RSSI) {this.RSSI = RSSI;}
