@@ -1,6 +1,5 @@
 package naneos.analyze;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
@@ -23,7 +22,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
-import static android.content.Context.NOTIFICATION_SERVICE;
+
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -43,6 +42,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -53,17 +53,16 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
-import org.json.JSONArray;
-import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
@@ -76,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
     //TODO: Status: Connection to DB established?
     //TODO: Status: Bluettoth, Location, Wlan on? (not important!)
 
+    private int SYNC_FREQ = 60000;
+
     //layout
     protected ListView lv_main;
     protected Button btn_syncOnce;
@@ -87,6 +88,9 @@ public class MainActivity extends AppCompatActivity {
     protected TextView tv_main_status;
     protected TextView tv_main_status_scanning;
     protected TextView tv_main_status_syncing;
+    protected TextView tv_main_status_timeSinceLastReceived;
+    protected TextView tv_main_status_timeSinceLastSynced;
+    protected TextView tv_main_status_sync_freq;
 
     //data
     private List<NaneosDataObject> rawDataList = new ArrayList<NaneosDataObject>();
@@ -94,6 +98,8 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter adapter;
     public static NaneosBleDataBroadcastReceiver bleDataReceiver;
     private ArrayList listOfDevicesForUserFromDB;
+    public HashMap<String, ArrayList<String>> jsonSyncMap;
+    public ArrayList<String> jsonSyncList_days;
 
     //db
     private FirebaseFirestore db;
@@ -107,12 +113,13 @@ public class MainActivity extends AppCompatActivity {
     //Auxilliary
     protected Context mainContext = this;
     private NaneosScanCallback mScanCallback;
-    private PermissionManager permissionManager;
     private NaneosDataObject lastSyncedDataObject;
     private int secondsSinceLastObjectReceived;
     private int secondsSinceLastObjectSynced;
     public Handler updateAssertScanStatusHandler;
     public Handler updateAssertSyncStatusHandler;
+    protected Handler updateTimeSinceLastSyncHandler;
+    protected Handler updateTimeSinceLastReceivedHandler;
     public long timeSinceLastProceedWithCurrentAccount;
 
     //LE-Scanner
@@ -135,28 +142,27 @@ public class MainActivity extends AppCompatActivity {
     // onPause()  -----------      |
     // onStop()  ------------------
     // onDestroy()
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         /* ******************** AUTH ********************** */
+        FirebaseApp.initializeApp(this);
         mAuth = FirebaseAuth.getInstance();     // MF: does this work without internet permission?
 
         /* ******************* Layout ********************* */
         lv_main = findViewById(R.id.lv_main);
-        btn_syncOnce = findViewById(R.id.btn_syncOnce);
-        btn_save = findViewById(R.id.btn_save);
-        switch_keepSynced = findViewById(R.id.switch_keepSynced);
         tv_amountOfLocalData = findViewById(R.id.textView_amountOfDataObjects);
         tv_main_status = findViewById(R.id.tv_main_status);
-        tv_main_status_scanning = findViewById(R.id.tv_main_status_scanning);
         tv_main_status_syncing = findViewById(R.id.tv_main_status_syncing);
+        tv_main_status_timeSinceLastReceived = findViewById(R.id.tv_main_status_timeSyncLastReceived);
+        tv_main_status_timeSinceLastSynced = findViewById(R.id.tv_main_status_timeSinceLastSync);
+        tv_main_status_sync_freq = findViewById(R.id.tv_main_status_sync_freq);
 
         adapter = new ArrayAdapter<>(mainContext, android.R.layout.simple_list_item_1, listPerDeviceMetaList);
         lv_main.setAdapter(adapter);
+
 
         /* ******************* DB ********************* */
         db = FirebaseFirestore.getInstance();       // does this work without permission?
@@ -187,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
                                 mainContext.startActivity(startLoginActivity);
                                 break;
                             default:
-                                Toast.makeText(mainContext, menuItem.getTitle().toString() + ": not implemented yet", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(mainContext, menuItem.getTitle().toString() + ": to be implemented", Toast.LENGTH_SHORT).show();
                         }
 
 
@@ -203,40 +209,6 @@ public class MainActivity extends AppCompatActivity {
         ActionBar actionbar = getSupportActionBar();
         actionbar.setDisplayHomeAsUpEnabled(true);
         actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
-
-
-        /* ************* INTERACTIONS ************************ */
-
-
-        btn_syncOnce.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Not implemented yet!", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        btn_save.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-
-                Toast.makeText(MainActivity.this, "Not implemented yet!", Toast.LENGTH_SHORT).
-                        show();
-            }
-        });
-
-        switch_keepSynced.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-                if (isChecked) {
-                    startSyncingWithTimer();
-                    //tv_main_status_syncing.setText("Syncing: in Progress");
-                } else {
-                    stopSyncingWithTimer();
-                    //tv_main_status_syncing.setText("Syncing: stopped");
-                }
-            }
-        });
 
         /* ******* TIMERS FOR SCHEDULED STUFF (SYNCING TO DB, ASSERTING SCANNING STATUS) ************* */
         updateAssertScanStatusHandler = new Handler() {
@@ -255,14 +227,36 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        updateTimeSinceLastSyncHandler = new Handler() {
+            public void handleMessage(Message msg){
+                if(msg.what == 0){
+                    tv_main_status_timeSinceLastSynced.setText(msg.obj.toString());
+                }
+            }
+        };
+
+        updateTimeSinceLastReceivedHandler = new Handler(){
+            public void handleMessage(Message msg){
+                if(msg.what == 0){
+                    tv_main_status_timeSinceLastReceived.setText(msg.obj.toString());
+                }
+            }
+        };
+
 
         timerAssertScanStatusTask = new TimerTask() {
             @Override
             public void run() {
                 secondsSinceLastObjectReceived++;
                 secondsSinceLastObjectSynced++;
-                updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: in Progress - Time since last sync: " + secondsSinceLastObjectSynced).sendToTarget();
-                updateAssertScanStatusHandler.obtainMessage(0, "Scanning: in Progress - Time since last object: " + secondsSinceLastObjectReceived).sendToTarget();
+
+                //time since last received object / sync is > than 5 minutes --> display an Error to the user
+                if(secondsSinceLastObjectReceived > 300 || secondsSinceLastObjectSynced > 300){
+                    tv_main_status.setText("Status: Error");
+                }
+
+                updateTimeSinceLastSyncHandler.obtainMessage(0, "Syncing: in Progress - Time since last sync: " + secondsSinceLastObjectSynced).sendToTarget();
+                updateTimeSinceLastReceivedHandler.obtainMessage(0, "Scanning: in Progress - Time since last object: " + secondsSinceLastObjectReceived).sendToTarget();
             }
         };
 
@@ -282,28 +276,33 @@ public class MainActivity extends AppCompatActivity {
             public void onDataChange(DataSnapshot snapshot) {
                 boolean connected = snapshot.getValue(Boolean.class);
                 if (connected) {
-                    Toast.makeText(mainContext, "Connected", Toast.LENGTH_SHORT).show();
                     Log.d("NaneosOnCreate", "Connected to Firebase!");
-                    switch_keepSynced.setChecked(true);
-                    updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: connected").sendToTarget();
+                    updateAssertSyncStatusHandler.obtainMessage(0, "DB: connected").sendToTarget();
                 } else {
-                    Toast.makeText(mainContext, "Not connected", Toast.LENGTH_SHORT).show();    // TODO: restart syncing here!
                     Log.d("NaneosOnCreate", "Not connected to Firebase!");
-                    switch_keepSynced.setChecked(false);
-                    updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: not connected to DB!").sendToTarget();
+                    updateAssertSyncStatusHandler.obtainMessage(0, "DB: not connected").sendToTarget();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError error) {
+                updateAssertSyncStatusHandler.obtainMessage(0, "DB: Upload canceled").sendToTarget();
             }
         });
 
         // start BLEtimer task here
         startBLETimer();
+        //start DB-Sync here
+        startSyncingWithTimer();
 
         // MF added: start channel for notifications
         createNotificationChannel();
+
+        //init textViews to fill placeholder-texts
+        tv_amountOfLocalData.setText("Devices: 0");
+        tv_main_status_sync_freq.setText("Sync frequency: " + SYNC_FREQ/1000 + "s");
+
+        tv_main_status.setText("Status: running...");
 
         Log.d("NaneosMainActivity", "onCreate finished!");
     }
@@ -418,13 +417,12 @@ public class MainActivity extends AppCompatActivity {
 
         Long deltaT = (tsLong - tsLastLogin);
 
-        if(timeSinceLastProceedWithCurrentAccount > 0){
+        if (timeSinceLastProceedWithCurrentAccount > 0) {
             timeSinceLastProceed = tsLong - timeSinceLastProceedWithCurrentAccount;
-            Log.d("Naneos", "Time since last Proceed (s): " + timeSinceLastProceed/1000);
-        }else{
+            Log.d("Naneos", "Time since last Proceed (s): " + timeSinceLastProceed / 1000);
+        } else {
             timeSinceLastProceed = 0L;
         }
-
 
 
         Long deltaTinSeconds = deltaT / 1000;
@@ -500,13 +498,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 Log.d("Naneos", "getListOfDevicesFromDB: dataSnapshot: " + dataSnapshot.getValue());
-                listOfDevicesForUserFromDB = new ArrayList();
+                listOfDevicesForUserFromDB = new ArrayList<JSONObject>();
                 ArrayList<Long> data = (ArrayList) dataSnapshot.getValue();
+                /*
                 if (data != null) {
                     for (int i = 0; i < data.size(); i++) {
                         listOfDevicesForUserFromDB.add(data.get(i) != null ? data.get(i).intValue() : null);
                     }
                 }
+                */
             }
 
             @Override
@@ -516,41 +516,89 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void checkIfUpdateOfDeviceMetaListIsNecessary() {
+    //precondition: listPerDeviceMetaList.size() > 0 && listOfDevicesForUserFromDB.size() > 0
+    public void checkIfUpdateOfDeviceMetaListIsNecessary(NaneosDataObject dataSyncObject) {
 
-        //case 0: no metaList exists for this user
-        if (listOfDevicesForUserFromDB == null || listOfDevicesForUserFromDB.size() < 1) {
-            ArrayList _temp = new ArrayList();
+        //case 0: no metaList exists on rtDB for this user
+        if ((listPerDeviceMetaList != null && listPerDeviceMetaList.size() > 0) && (listOfDevicesForUserFromDB == null || listOfDevicesForUserFromDB.size() < 1)) {
+
             for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
-                _temp.add(listPerDeviceMetaList.get(i).getSerial());
+                jsonSyncMap = new HashMap<String, ArrayList<String>>();
+                jsonSyncList_days = new ArrayList<String>();
+
+                jsonSyncList_days.add(dataSyncObject.getDateAsFirestoreKey());
+                jsonSyncMap.put(String.valueOf(dataSyncObject.getSerial()), jsonSyncList_days);
+
             }
-            updateDeviceMetaListOnRTDB(_temp);
+            updateDeviceMetaListOnRTDB(jsonSyncMap);
             return;
         }
 
+        /*
+        //TODO: Add logic to add a specific serial to the metalist if the already exists on the server and is not empty
+        boolean found_serial;
+        boolean found_day;
         //case 1: metaLists exists but doesn't contain all devices which we are receiving from --> update list
-        if (listOfDevicesForUserFromDB != null && listOfDevicesForUserFromDB.size() > 0) {
+        if (listOfDevicesForUserFromDB != null && listOfDevicesForUserFromDB.size() > 0 && listPerDeviceMetaList != null && listPerDeviceMetaList.size() > 0) {
+            //loop through local data
             for (int i = 0; i < listPerDeviceMetaList.size(); i++) {
-                Log.d("Naneos", "listOfDevicesForUserFromDB: Test: " + listOfDevicesForUserFromDB.get(0).getClass());
-                if (!((ArrayList) listOfDevicesForUserFromDB).contains(listPerDeviceMetaList.get(i).getSerial())) {
-                    Log.d("Naneos", "Found Serial on Device but not on DBList: " + listPerDeviceMetaList.get(i).getSerial());
-                    listOfDevicesForUserFromDB.add(listPerDeviceMetaList.get(i).getSerial());
-                    updateDeviceMetaListOnRTDB(listOfDevicesForUserFromDB);
-                } else {
-                    Log.d("Naneos", "No Update of DeviceMetaList necessary!");
+                found_serial = false;
+                found_day = false;
+                //loop through dbData and see if we have local data which doesn't exist online
+                for (int j = 0; j < listOfDevicesForUserFromDB.size(); j++) {
+                    try {
+                        JSONObject _dbMetaList = (JSONObject) listOfDevicesForUserFromDB.get(j);
+                        if (listPerDeviceMetaList.get(i).getSerial() == (Integer.valueOf(_dbMetaList.getString("serial")))){
+                            ArrayList<String> _dbDays = (ArrayList<String>) _dbMetaList.get("jsonSyncList_days");
+                            found_serial = true;
+
+                            //list of jsonSyncList_days exists and is not empty
+                            if (_dbDays != null && _dbDays.size() > 0) {
+                                if (_dbDays.contains(dataSyncObject.getDateAsFirestoreKey())) {
+                                    found_day = true;
+                                } else {
+                                    //day doesn't exist on DB - add it to the list
+                                    _dbDays.add(dataSyncObject.getDateAsFirestoreKey());
+                                }
+                            }
+
+
+                        }
+
+                    } catch (JSONException e) {
+                        Log.d("Naneos", "checkIfUpdateOfDeviceMetaListIsNecessary(): reading from JSON failed");
+                    }
+                }
+
+                //Serial doesn't exist on DB - add it to the list
+                if (!found_serial) {
+                    try{
+                        JSONObject _dbMetaList = new JSONObject();
+                        ArrayList<String> _dbDays = new ArrayList<String>();
+                        _dbDays.add(dataSyncObject.getDateAsFirestoreKey());
+                        _dbMetaList.put("serial", dataSyncObject.getSerial());
+                        _dbMetaList.put("jsonSyncList_days", _dbDays);
+                    }catch  (JSONException e){
+                        Log.d("Naneos", "checkIfUpdateOfDeviceMetaListIsNecessary(): writing to JSON failed");
+                    }
+                }
+
+                if(!found_serial || !found_day){
+                    updateDeviceMetaListOnRTDB(_dbMetaList);
                 }
             }
         }
+        */
 
     }
 
-    private void updateDeviceMetaListOnRTDB(ArrayList list) {
+    public void updateDeviceMetaListOnRTDB(HashMap<String, ArrayList<String>> _newMetaList) {
         final FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myDbRef = database.getReference();
 
         DatabaseReference dataRef = myDbRef.child(currentUser.getEmail().replaceAll("\\.", ",")).child("devices");
 
-        dataRef.setValue(list).addOnSuccessListener(new OnSuccessListener<Void>() {
+        dataRef.setValue(_newMetaList).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
                 Log.d("Naneos", "updateDeviceMetaList - success!");
@@ -591,14 +639,15 @@ public class MainActivity extends AppCompatActivity {
                             // replace dataToSync with a NaneosSyncObject which has less data inside!
                             NaneosDataSyncObject naneosDataSyncObject = new NaneosDataSyncObject(dataToSync);
                             dataRef.setValue(naneosDataSyncObject).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
+                                @Override
                                 public void onSuccess(Void aVoid) {
                                     secondsSinceLastObjectSynced = 0;
                                     currentDataList.amountOfSyncedObjects++;
                                     dataToSync.setStoredInDB(true);
                                     adapter.notifyDataSetChanged();
                                     lastSyncedDataObject = dataToSync;
-                                    checkIfUpdateOfDeviceMetaListIsNecessary();
+                                    checkIfUpdateOfDeviceMetaListIsNecessary(dataToSync);
+                                    tv_main_status.setText("Status: running...");
                                     Log.d("Firestore", "success");
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
@@ -606,6 +655,7 @@ public class MainActivity extends AppCompatActivity {
                                 public void onFailure(@NonNull Exception e) {
                                     dataToSync.setStoredInDB(false);
                                     updateAssertSyncStatusHandler.obtainMessage(0, "Syncing: Error - Could not send Data to DB!").sendToTarget();
+                                    tv_main_status.setText("Status: last sync failed");
                                     Log.d("Firestore", "fail");
                                 }
                             });
@@ -647,7 +697,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         timerDBSync = new Timer();
-        int freq = 60000; // 5000; // 60000; //60000 = 1 min
+        int freq = SYNC_FREQ; // 5000; // 60000; //60000 = 1 min
 
         timerDBSyncTask = new TimerTask() {
             @Override
@@ -676,6 +726,8 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onReceive(Context context, Intent intent) {
+
+            updateAssertScanStatusHandler.obtainMessage(0, "scanning!");
             //get the dataObject
             NaneosDataObject currentData = (NaneosDataObject) intent.getSerializableExtra("newDataObject");
 
@@ -748,6 +800,7 @@ public class MainActivity extends AppCompatActivity {
         filters.add(scanFilter);
         filters.add(new ScanFilter.Builder().setDeviceName("P2").build());
         mLEScanner.startScan(filters, builderScanSettings.build(), mScanCallback);
+        updateAssertScanStatusHandler.obtainMessage(0, "scanning...");
 
 
         return (mBluetoothAdapter != null);
@@ -771,9 +824,10 @@ public class MainActivity extends AppCompatActivity {
         t.scheduleAtFixedRate(new TimerTask() {
                                   @Override
                                   public void run() {  // called repetitively, scans for devices
-                                      Log.e("Restart", "Restart scanning");
+                                      Log.d("Naneos: BLETimer", "Restart scanning");
                                       mLEScanner.stopScan(mScanCallback);
                                       mLEScanner.startScan(filters, builderScanSettings.build(), mScanCallback);
+
                                   }
                               },
                 // set how long to wait before starting the Timer Task

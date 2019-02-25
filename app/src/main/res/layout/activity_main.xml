@@ -20,38 +20,71 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
+            app:titleTextColor="@color/common_google_signin_btn_text_dark_default"
             />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:id="@+id/status_container_horizontal"
+            android:padding="10dp"
+            android:background="@color/common_google_signin_btn_text_dark_disabled">
 
-            <TextView
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="2"
                 android:layout_height="wrap_content"
-                android:text="@string/status"
-                android:id="@+id/tv_main_status"
-                android:textStyle="bold"/>
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/textView_amountOfDataObjects"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/amountOfDataObjects" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/status"
+                    android:id="@+id/tv_main_status"
+                    android:textStyle="bold"/>
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/scanning"
-                android:id="@+id/tv_main_status-scanning"/>
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/syncing"
-                android:id="@+id/tv_main_status-syncing"/>
+                <TextView
+                    android:id="@+id/textView_amountOfDataObjects"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/amountOfDataObjects" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/syncing"
+                    android:id="@+id/tv_main_status-syncing"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sync_freq"
+                    android:id="@+id/tv_main_status-sync_freq"/>
+
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="2"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/timeSinceLastReceived"
+                    android:id="@+id/tv_main_status-timeSyncLastReceived"
+                    />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/timeSinceLastSync"
+                    android:id="@+id/tv_main_status-timeSinceLastSync"/>
+            </LinearLayout>
         </LinearLayout>
+
 
         <ListView
             android:id="@+id/lv_main"
@@ -59,33 +92,6 @@
             android:layout_height="0dp"
             android:layout_weight="0.9" >
         </ListView>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.1"
-            android:gravity="center_horizontal"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btn_save"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/save" />
-
-            <Button
-                android:id="@+id/btn_syncOnce"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_sync" />
-
-            <Switch
-                android:id="@+id/switch_keepSynced"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-
-                android:text="@string/switch__keepSync" />
-        </LinearLayout>
 
     </LinearLayout>
 

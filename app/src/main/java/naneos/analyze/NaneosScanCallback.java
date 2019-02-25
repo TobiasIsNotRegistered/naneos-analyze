@@ -23,15 +23,16 @@ import java.util.Calendar;
 public class NaneosScanCallback extends ScanCallback {
 
     //Data
-    private float LDSA;
+    /*private float LDSA;
     private float RH;
     private float Temperature;
     private float BatteryVoltage;
     private int errorcode;
     private int number;
     private int diameter;
+    private int serial;*/
     private int currentDataIndex;
-    private int serial;
+
 
     private String lastreceived = "";    // lastreceived will hold the last valid advertising data received
     private String buffer = "";
@@ -60,6 +61,8 @@ public class NaneosScanCallback extends ScanCallback {
     // callback when a BLE advertisement has been found
     public void onScanResult(int callbackType, final ScanResult result) {
 
+        // TODO: the two lines below appear dangerous!  they are not in the same place as receiveAndDeserializeBleData
+        // TODO: what happens if advertisements are mixed?? (I see strange things in the app...)
         final BluetoothDevice device = result.getDevice();
         final android.bluetooth.le.ScanRecord scanRecord = result.getScanRecord();
 
@@ -68,21 +71,66 @@ public class NaneosScanCallback extends ScanCallback {
             @Override
             public void run() {
                 int RSSI;
+                float LDSA;
+                float RH;
+                float Temperature;
+                float BatteryVoltage;
+                int errorcode;
+                int number;
+                int diameter;
+                int serial;
+
+                byte [] scanrecord_bytes = new byte[62];
+                String deviceToString = new String();
+                String deviceName = new String();
+                //TODO data is in the wrong place!?
+
                 // use lastreceived and buffer to parse data properly
                 if (device == null /*|| device.getName() == null*/) {
                     Log.d("onScanResult", "device was null");
                     return;
                 }
 
-                if (device.getName() != null && (device.getName().contains("Partector") || device.getName().contains("P2"))) {
-                    String msg = "ascii: ";
+                if (device.getName() != null  && device.getName().contains("P2")) {
+                    String msg = "";
                     RSSI = result.getRssi();
                     Log.d("onScanResult", "RSSI is " + RSSI);
 
-                    for (byte b : scanRecord.getBytes())
+                   /* for (byte b : scanRecord.getBytes())
                         msg += (char) (b & 0xFF);
+                    msg = msg.substring(9, 29);*/
 
-                    msg = msg.substring(16, 36);
+                    scanrecord_bytes = scanRecord.getBytes();
+                    System.out.println("-->found " + scanrecord_bytes.length + " bytes in scanrecord");
+
+                    // 1. retrieve manufacturer specific data from advertisement
+                    for (byte b : scanrecord_bytes)
+                        msg += (char) (b & 0xFF);
+                    System.out.println("--> scanrecord" + msg);
+
+// now, we go looking for the manufacturer-specific data
+                    int start = 0; // precondition: we are at the start of a packet
+                    int length = 0;
+                    while(start < 31 && scanrecord_bytes[start+1] != (byte)0xFF) {
+                        System.out.println(start + ": length is " + scanrecord_bytes[start]);
+                        System.out.println("packet data type is: " + scanrecord_bytes[start+1]);
+                        length = scanrecord_bytes[start];
+                        start += (length + 1);
+                    }
+
+                    // now that we end up here, scanrecord_bytes [start+1] should be 0xFF
+                    if(start < 31 && scanrecord_bytes[start + 1] == (byte)0xFF) {
+                        // we found manufacturer-specific data
+                        length = scanrecord_bytes[start];
+                        msg = msg.substring(start+2, start+2+length-1);
+                    }
+                    else {
+                        System.out.println("ill-formated packet found");
+                        return;
+                    }
+
+                    System.out.println("--> payload found at " + (start+2) + " with length " + length + ":" + msg + " " + msg.length());
+
                     if (!msg.equals(lastreceived)) {
                         // new data
                         NaneosDataObject newData = new NaneosDataObject();
@@ -91,27 +139,28 @@ public class NaneosScanCallback extends ScanCallback {
                         newData.setMacAddress(device.getAddress());
                         newData.setRSSI(RSSI);
 
+                        // TODO: this is the wrong way round! Or alternatively, if anything strange is found in data packet
+                        // we have to destroy the newData object again!
+
                         // 1. remember it
                         lastreceived = msg;
                         // 2. add it to input buffer
-                        buffer = buffer + msg;
+                        //buffer = buffer + msg;
                         // 3. parse
-                        String[] parts = buffer.split("S");
+                        String[] parts = msg.split("S");
+                        System.out.println("msg is:"+msg);
                         if (parts.length > 0) {
                             try {
 
-                                for (int i = 0; i < parts.length - 1; i++) {
-
+                                for (int i = 0; i < parts.length; i++) {
+                                    parts[i] = parts[i].trim();
                                     if (parts[i].length() == 0)
                                         continue;
 
                                     switch (parts[i].charAt(0)) {
                                         case 'L':
-
                                             if (parts[i].endsWith("l")) {
-
                                                 LDSA = Float.parseFloat(parts[i].substring(1, parts[i].length() - 1));
-
                                                 newData.setLDSA(LDSA);
                                             }
                                             break;
@@ -166,6 +215,7 @@ public class NaneosScanCallback extends ScanCallback {
                             }
                         }
                         // 4. keep only last unparsed stuff
+                        // TODO: the entire buffer thing can be removed
                         if (parts.length > 0)
                             buffer = parts[parts.length - 1];
                         // if there was a trailing S, restore it (it was stripped by string.split
@@ -173,6 +223,8 @@ public class NaneosScanCallback extends ScanCallback {
                             buffer = buffer + 'S';
 
                         //Send data to mainAcitivity by making NaneosDataObject Serializable
+                        // TODO: is this intent stuff really necessary?? no other way to call back main Activity?
+                        // TODO: how did I do this in my old app?
                         Intent intent = new Intent();
                         // the line below gives a lint warning "static member accessed via instance reference"
                         intent.setAction(MainActivity.NaneosBleDataBroadcastReceiver.SEND_BLE_DATA);

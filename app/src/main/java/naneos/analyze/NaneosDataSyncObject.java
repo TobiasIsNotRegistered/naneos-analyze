@@ -55,14 +55,6 @@ public class NaneosDataSyncObject implements Serializable {
         Log.d("NaneosSync", this.toString());
     }
 
-
-
-    @Override
-    // todo: is this necessary?
-    public String toString() {
-        return "LDSA: " + getLDSA() + "T: " + getTemp() + "RH: " + getHumidity();
-    }
-
     /** GETTERS & SETTERS **/
 
 

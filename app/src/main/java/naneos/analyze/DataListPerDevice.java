@@ -29,10 +29,10 @@ public class DataListPerDevice {
 
     @Override
     public String toString() {
-        return "Serial: " + getSerial()
-                + "\n" + "Mac: " + getMacAddress() + "  RSSI: " + aggregatedPreviousData.getRSSI()
+        return "Serial: " + getSerial() +  "\t  RSSI: " + aggregatedPreviousData.getRSSI()
+                + "\n" + "Mac: " + getMacAddress()
                 + "\n" + "received Data: " + store.size()
-                + "\n" + "amountOfSyncedData: " + amountOfSyncedObjects
+                + "\n" + "syncedData: " + amountOfSyncedObjects
                 + "\n"
                 + "\n" + "ldsa: " + aggregatedPreviousData.getLDSA()
                 + "\n" + "humidity: " + aggregatedPreviousData.getHumidity()

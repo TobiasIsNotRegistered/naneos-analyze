@@ -1,10 +1,13 @@
 <resources>
     <!--    Standart -->
-    <string name="app_name">Analyze</string>
+    <string name="app_name">Naneos - Analyze</string>
     <string name="cancel">Abbrechen</string>
     <string name="status">Status</string>
     <string name="scanning">Scanning: -</string>
     <string name="syncing">Syncing: -</string>
+    <string name="timeSinceLastSync">Last sync: -</string>
+    <string name="timeSinceLastReceived">Last received: -</string>
+    <string name="sync_freq">Sync-Frequency: </string>
 
     <!-- Main-Interactions -->
     <string name="switch__keepSync">Keep synced</string>
@@ -17,7 +20,9 @@
     <string name="icon_import">Import</string>
     <string name="icon_gallery">Gallery</string>
     <string name="icon_slideshow">Slideshow</string>
+    <string name="icon_settings">Settings</string>
     <string name="icon_logout">Logout</string>
+    <string name="icon_Settings">Settings</string>
 
     <!-- PermissionManager -->
     <string name="gps_network_not_enabled">Es scheint, als sei GPS nicht aktiviert. Bitte aktivieren Sie den Dienst, um fortzufahren.</string>
