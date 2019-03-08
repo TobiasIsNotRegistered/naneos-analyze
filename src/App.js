@@ -231,7 +231,7 @@ class App extends Component {
   }
 
   fillDataForChart(_data) {
-    let maxAmountData = 1000;
+    let maxAmountData = 100000;
 
     if (_data.length > maxAmountData) {
       _data = _data.slice(_data.length - maxAmountData, _data.length);

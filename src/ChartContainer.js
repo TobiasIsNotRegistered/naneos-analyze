@@ -159,7 +159,7 @@ class ChartContainer extends Component {
                 }
                 dataPerDay.data.push(dataObject);
             })
-            dataPerDay.data = dataPerDay.data.slice(0, 1440);
+            //dataPerDay.data = dataPerDay.data.slice(0, 1440);
 
             this.setState(prevState => ({
                 availableDays: [...prevState.availableDays, dataPerDay],
@@ -341,7 +341,7 @@ class ChartContainer extends Component {
                                         <XAxis dataKey='time'
                                             name='time'
                                             type="number"
-                                            domain={['auto', 'auto']}
+                                            domain={['dataMin', 'dataMax']}
                                             tickFormatter={(time) => moment(time).format('HH:mm')}
                                         />
                                         <YAxis width={10}
