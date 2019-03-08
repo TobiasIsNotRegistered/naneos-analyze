@@ -169,8 +169,10 @@ class ChartContainer extends Component {
                 chartIsLoading: false
             }))
 
-            //this.sortDataAfterDays();
+            this.sortDataAfterDays();
         })
+
+        
     }
 
     displayDataForThisDay(index) {
@@ -200,15 +202,23 @@ class ChartContainer extends Component {
     }
 
     sortDataAfterDays() {
+        //TODO: Works, BUT we are sorting everytime a new day is found (because we don't know how many days are there). Possibly inefficient...
         //arg2 - arg1 = absteigende Reihenfolge = jüngstes Element zuerst (sort() benötigt einen Komparator der Zahlen <0; =0, oder >0 ausgibt)
         let _temp = this.state.availableDays;
-        _temp.sort((day1, day2) => { return (day2.data[0].date.time - day1.data[0].date.time) })
-        /*
-        this.setState({
-            availableDays : this.state.availableDays.sort((day1, day2) => {return(day2.data[0].date.time - day1.data[0].date.time)})
-        })
-        */
-        return _temp;
+        if (this.state.availableDays && this.state.availableDays.length > 0) {
+
+            _temp.sort((day1, day2) => { return (day2.data[0].milliseconds - day1.data[0].milliseconds) })
+
+            this.setState({
+                availableDays: _temp
+            })
+
+            console.log("ChartContainer: sortDataAfterDays: finished sorting")
+
+            return _temp;
+        } else {
+            console.log("ChartContainer: sortDataAfterDays: couldn't sort because data wasn't available");
+        }
     }
 
     handleScroll = () => {
