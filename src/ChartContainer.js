@@ -27,7 +27,7 @@ class ChartContainer extends Component {
             chartIsLoading: false,
             isListeningToChanges: false,
             listeningToChangesFrom: "",
-            sampleData: [
+            /*sampleData: [
                 { name: 'Page A', uv: 4000, pv: 2400, amt: 2400 },
                 { name: 'Page B', uv: 3000, pv: 1398, amt: 2210 },
                 { name: 'Page C', uv: 2000, pv: 9800, amt: 2290 },
@@ -35,7 +35,7 @@ class ChartContainer extends Component {
                 { name: 'Page E', uv: 1890, pv: 4800, amt: 2181 },
                 { name: 'Page F', uv: 2390, pv: 3800, amt: 2500 },
                 { name: 'Page G', uv: 3490, pv: 4300, amt: 2100 },
-            ]
+            ]*/
         }
         this.referencesRTDB = [];
         this.updateChart = this.updateChart.bind(this);
@@ -135,12 +135,12 @@ class ChartContainer extends Component {
         //listener on days - invokes when a new day is added
         dataRef.orderByKey().on('child_added', (snap_day) => {
             console.log('found day from rtdb: ' + snap_day.key + " for device: " + this.state.currentDevice)
-
+            //console.log('current day is ' + this.state.currentDayString);
             const dataPerDay = {
                 key: snap_day.key,
                 data: []
             }
-
+            
             //this.registerListenersForThisDay(serial, snap_day); //uncomment this if you wanna listen to all devices all the time
 
             snap_day.forEach((_dataObject) => {
@@ -160,16 +160,30 @@ class ChartContainer extends Component {
                 dataPerDay.data.push(dataObject);
             })
             //dataPerDay.data = dataPerDay.data.slice(0, 1440);
-
+            console.log('this day has ' + dataPerDay.data[0].milliseconds + 'ms as ordering value');
             this.setState(prevState => ({
                 availableDays: [...prevState.availableDays, dataPerDay],
-                currentDayString: snap_day.key,
+                // change MF: do not use current day here, as we want to use the 
+                // day with the largest ms value, i.e. set current day after ordering!
+                //currentDayString: snap_day.key,
                 currentDayIndex: this.state.availableDays.length,
                 dataToDisplay: dataPerDay.data,
                 chartIsLoading: false
             }))
+            //console.log('before call to sortDataAfterDays: current day is ' +  this.state.currentDayString);
 
             this.sortDataAfterDays();
+            //console.log('available days');
+            //console.log(this.state.availableDays); 
+
+            // change MF: we need to display the data of the current day:
+            // and since we ordered the list, it will be index 0!
+           this.displayDataForThisDay(0); 
+
+           
+                                    
+
+            //console.log('after call to sortDataAfterDays: current day is ' +  this.state.currentDayString);
         })
 
         
@@ -212,7 +226,12 @@ class ChartContainer extends Component {
             this.setState({
                 availableDays: _temp
             })
-
+            //console.log(_temp[0].key);
+            //console.log(this.state.currentDayString);
+            // change by MF: use the newest day.
+            this.state.currentDayString = _temp[0].key; 
+            //console.log(_temp[0]);
+            //console.log(this.state.currentDayString);
             console.log("ChartContainer: sortDataAfterDays: finished sorting")
 
             return _temp;
